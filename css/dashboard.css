@@ -1,0 +1,206 @@
+/* ============================================
+   ISYNQ — Dashboard Styles
+   ============================================ */
+
+.app-layout {
+  min-height: 100vh;
+  padding-top: var(--header-height);
+  background: var(--color-bg-light);
+}
+
+.app-header {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+  height: var(--header-height);
+  background: rgba(255,255,255,0.95);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 1px 8px rgba(0,0,0,0.05);
+  display: flex; align-items: center;
+}
+
+.app-content {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 32px 24px;
+}
+
+/* Welcome banner */
+.welcome-banner {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-accent-purple));
+  border-radius: var(--radius-xl);
+  padding: 32px 40px;
+  color: #fff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+}
+
+.welcome-banner h2 {
+  color: #fff;
+  font-size: 1.5rem;
+  margin-bottom: 4px;
+}
+
+.welcome-banner p {
+  color: rgba(255,255,255,0.85);
+  font-size: 0.9375rem;
+}
+
+.credits-display {
+  text-align: right;
+}
+
+.credits-display .credits-number {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #fff;
+}
+
+.credits-display .credits-label {
+  font-size: 0.8125rem;
+  color: rgba(255,255,255,0.7);
+}
+
+/* Copilot type cards */
+.copilot-section {
+  margin-bottom: 40px;
+}
+
+.copilot-section h3 {
+  font-size: 1.25rem;
+  margin-bottom: 20px;
+  color: var(--color-text-primary);
+}
+
+.copilot-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.copilot-type-card {
+  background: #fff;
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  border: 2px solid var(--color-border-light);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  text-align: center;
+}
+
+.copilot-type-card:hover {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-4px);
+}
+
+.copilot-type-card.selected {
+  border-color: var(--color-primary);
+  background: var(--color-primary-lighter);
+}
+
+.copilot-type-icon {
+  font-size: 2.5rem;
+  margin-bottom: 12px;
+}
+
+.copilot-type-card h4 {
+  margin-bottom: 8px;
+}
+
+.copilot-type-card p {
+  font-size: 0.875rem;
+}
+
+/* Meeting history */
+.meeting-history {
+  background: #fff;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border-light);
+  overflow: hidden;
+}
+
+.meeting-history-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--color-border-light);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.meeting-history-header h3 {
+  font-size: 1.125rem;
+}
+
+.meeting-item {
+  padding: 16px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--color-border-light);
+  transition: background var(--transition-fast);
+}
+
+.meeting-item:last-child {
+  border-bottom: none;
+}
+
+.meeting-item:hover {
+  background: var(--color-primary-lighter);
+}
+
+.meeting-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.meeting-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-md);
+  background: var(--color-primary-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+}
+
+.meeting-details h4 {
+  font-size: 0.9375rem;
+  margin-bottom: 2px;
+}
+
+.meeting-details span {
+  font-size: 0.8125rem;
+  color: var(--color-text-tertiary);
+}
+
+.meeting-meta {
+  text-align: right;
+  font-size: 0.8125rem;
+  color: var(--color-text-tertiary);
+}
+
+.meeting-duration {
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--color-text-tertiary);
+}
+
+.empty-state svg {
+  margin: 0 auto 16px;
+  width: 48px;
+  height: 48px;
+}
+
+@media (max-width: 768px) {
+  .copilot-grid { grid-template-columns: 1fr; }
+  .welcome-banner { flex-direction: column; text-align: center; gap: 16px; }
+  .credits-display { text-align: center; }
+}

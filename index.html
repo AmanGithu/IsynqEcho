@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Isynq — Real-time AI Assistant for Interviews, Sales Calls & Meetings</title>
+  <meta name="description" content="Isynq is a real-time AI meeting assistant that listens and gives instant, personalized answers during interviews, sales calls, and meetings.">
+  <link rel="stylesheet" href="css/design-system.css">
+  <link rel="stylesheet" href="css/animations.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/homepage.css">
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="site-header" id="site-header">
+  <div class="header-inner">
+    <a href="index.html" class="header-logo">
+      <div class="logo-icon">I</div>
+      <span>Isynq</span>
+    </a>
+    <nav class="header-nav">
+      <a href="#how-it-works">How it Works</a>
+      <a href="#features">Features</a>
+      <a href="#comparison">Comparison</a>
+      <a href="#faqs">FAQ's</a>
+      <a href="#pricing">Pricing</a>
+    </nav>
+    <div class="header-actions">
+      <a href="signin.html" class="btn-signin">Sign in</a>
+      <a href="signup.html" class="btn-signup">Sign up</a>
+      <div class="download-dropdown">
+        <button class="download-btn">Download <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></button>
+        <div class="download-menu">
+          <a href="#">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5C17.88 20.74 17 21.95 15.66 21.97C14.32 22 13.89 21.18 12.37 21.18C10.84 21.18 10.37 21.95 9.1 22C7.79 22.05 6.8 20.68 5.96 19.47C4.25 16.56 2.93 11.3 4.7 7.72C5.57 5.94 7.36 4.86 9.28 4.84C10.56 4.81 11.78 5.72 12.57 5.72C13.36 5.72 14.85 4.62 16.4 4.8C17.07 4.83 18.9 5.08 20.06 6.82C19.95 6.89 17.62 8.23 17.65 11.09C17.68 14.52 20.58 15.62 20.61 15.63C20.58 15.72 20.12 17.32 18.71 19.5ZM13 3.5C13.73 2.67 14.94 2.04 15.94 2C16.07 3.17 15.6 4.35 14.9 5.19C14.21 6.04 13.07 6.7 11.95 6.61C11.8 5.46 12.36 4.26 13 3.5Z"/></svg>
+            Download for Mac
+          </a>
+          <a href="#">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 12V6.75L9 5.43V11.91L3 12ZM20 3V11.75L10 11.97V5.21L20 3ZM3 13L9 13.09V19.9L3 18.75V13ZM10 13.2L20 13V22L10 20.09V13.2Z"/></svg>
+            Download for Windows
+          </a>
+        </div>
+      </div>
+    </div>
+    <button class="hamburger" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+
+<!-- MOBILE NAV -->
+<div class="mobile-nav">
+  <a href="#how-it-works">How it Works</a>
+  <a href="#features">Features</a>
+  <a href="#comparison">Comparison</a>
+  <a href="#faqs">FAQ's</a>
+  <a href="#pricing">Pricing</a>
+  <div class="mobile-actions">
+    <a href="signin.html" class="btn btn-ghost">Sign in</a>
+    <a href="signup.html" class="btn btn-primary">Sign up free</a>
+  </div>
+</div>
+
+<!-- HERO -->
+<section class="hero" id="hero">
+  <div class="container">
+    <div class="badge fade-in-up">🎁 Free &nbsp;·&nbsp; Get 5 <a href="signup.html" style="color: var(--color-primary); text-decoration: underline;">Free Minutes</a> Every Hour</div>
+    <h1 class="fade-in-up">Answer every question in<br>your next <span class="text-accent">meeting</span></h1>
+    <p class="hero-subtitle fade-in-up">Isynq listens to your meeting conversation, sees your screen and whispers the perfect response exactly when you need it. Always sound confident and prepared.</p>
+    <a href="signup.html" class="btn btn-primary btn-lg fade-in-up">Try Isynq Free <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+    <div class="hero-mockup fade-in-up">
+      <div style="width:100%;aspect-ratio:16/9;background:linear-gradient(135deg,#1E293B,#0F172A);border-radius:12px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;">
+        <div style="position:absolute;top:0;left:0;right:0;height:32px;background:rgba(255,255,255,0.06);display:flex;align-items:center;padding:0 12px;gap:6px;">
+          <span style="width:10px;height:10px;border-radius:50%;background:#EF4444;"></span>
+          <span style="width:10px;height:10px;border-radius:50%;background:#F59E0B;"></span>
+          <span style="width:10px;height:10px;border-radius:50%;background:#22C55E;"></span>
+          <span style="flex:1;text-align:center;color:rgba(255,255,255,0.4);font-size:11px;">Isynq — Interview Echo</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:48px 24px 24px;width:100%;">
+          <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:16px;border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-bottom:8px;">🎤 LIVE TRANSCRIPT</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.7);line-height:1.6;">
+              <p style="color:rgba(255,255,255,0.5);">[Interviewer]: Tell me about a challenging project you led.</p>
+              <p style="margin-top:6px;color:rgba(59,130,246,0.8);font-size:10px;">❓ QUESTION DETECTED</p>
+            </div>
+          </div>
+          <div style="background:rgba(59,130,246,0.08);border-radius:8px;padding:16px;border:1px solid rgba(59,130,246,0.2);">
+            <div style="font-size:10px;color:rgba(59,130,246,0.8);margin-bottom:8px;">💡 SUGGESTED RESPONSE</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.8);line-height:1.6;">
+              <strong style="color:#3B82F6;">Situation:</strong> At my previous role, I led the migration of a monolithic system...<br>
+              <strong style="color:#3B82F6;">Task:</strong> I needed to coordinate across 3 teams...
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="cloud-bg"></div>
+</section>
+
+<!-- INTEGRATIONS -->
+<section class="integrations section fade-in-up" id="integrations">
+  <div class="container">
+    <div class="section-header">
+      <h2>Works with all your meeting apps</h2>
+      <p>Isynq never "joins" or appears in your calls — it listens privately on your device so no one knows you're using it.</p>
+    </div>
+    <div class="integration-icons">
+      <div class="integration-icon float" title="Zoom">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="#2D8CFF"><path d="M4 4h11a3 3 0 013 3v5a3 3 0 01-3 3H4a1 1 0 01-1-1V5a1 1 0 011-1zm14 2l3-2v12l-3-2V6z"/></svg>
+      </div>
+      <div class="integration-icon float-delay-1" title="Google Meet">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="#00897B"><rect x="3" y="6" width="12" height="12" rx="2" /><polygon points="16,9 21,5 21,19 16,15"/></svg>
+      </div>
+      <div class="integration-icon float-delay-2" title="MS Teams">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="#6264A7"><rect x="3" y="3" width="18" height="18" rx="3"/><text x="12" y="16" text-anchor="middle" fill="white" font-size="10" font-weight="bold">T</text></svg>
+      </div>
+      <div class="integration-icon float-delay-3" title="Webex">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="#07C160"><circle cx="12" cy="12" r="9"/><text x="12" y="16" text-anchor="middle" fill="white" font-size="9" font-weight="bold">W</text></svg>
+      </div>
+      <div class="integration-icon float-delay-4" title="Slack">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="#E01E5A"><rect x="4" y="4" width="16" height="16" rx="3"/><text x="12" y="15" text-anchor="middle" fill="white" font-size="10" font-weight="bold">S</text></svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PAIN POINTS -->
+<section class="pain-points section" id="pain-points">
+  <div class="container">
+    <div class="section-header fade-in-up">
+      <h2>We've All Been There...</h2>
+      <p>Your mind goes blank. You forget what you wanted to say. Everyone's waiting for your answer.</p>
+    </div>
+    <div class="pain-cards stagger-children">
+      <div class="pain-card fade-in-up">
+        <div class="pain-number">01</div>
+        <h4>Your Mind Goes Blank</h4>
+        <p>Someone asks a tough question and suddenly you can't think. You freeze. You stutter. You wish you could just disappear.</p>
+      </div>
+      <div class="pain-card fade-in-up">
+        <div class="pain-number">02</div>
+        <h4>You Ramble and Ramble</h4>
+        <p>You start answering but can't find the point. Three minutes later, you're still talking and everyone looks confused.</p>
+      </div>
+      <div class="pain-card fade-in-up">
+        <div class="pain-number">03</div>
+        <h4>You Forget Important Details</h4>
+        <p>The client asks for that one number. You know you prepared it. But right now? Your brain won't cooperate.</p>
+      </div>
+      <div class="pain-card fade-in-up">
+        <div class="pain-number">04</div>
+        <h4>You Waste Time Searching</h4>
+        <p>While everyone waits, you're frantically searching your documents. The silence gets awkward. The moment passes.</p>
+      </div>
+    </div>
+    <div class="pain-transition fade-in-up">
+      Don't worry — here is your solution
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+    </div>
+  </div>
+</section>
+
+<!-- SOLUTION -->
+<section class="solution section" id="solution">
+  <div class="container">
+    <div class="section-header fade-in-up">
+      <h2>Isynq Gives You The <span class="text-accent">Perfect Answer</span></h2>
+      <p>Isynq listens to your conversation and tells you exactly what to say. Simple as that.</p>
+    </div>
+    <div class="solution-steps">
+      <div class="solution-step fade-in-up">
+        <div class="solution-step-icon">📄</div>
+        <div>
+          <h4>Tell Us About The Meeting</h4>
+          <p>Add your resume, docs, and anything important you want Isynq to remember — like job descriptions, product notes, or talking points.</p>
+        </div>
+      </div>
+      <div class="solution-step fade-in-up">
+        <div class="solution-step-icon">🎧</div>
+        <div>
+          <h4>Isynq Listens For You</h4>
+          <p>Isynq listens to your conversation and sees your screen in real time, capturing everything so it knows exactly what you need.</p>
+        </div>
+      </div>
+      <div class="solution-step fade-in-up">
+        <div class="solution-step-icon">💡</div>
+        <div>
+          <h4>You Get Your Answer</h4>
+          <p>See exactly what to say, instantly. Your answer appears on screen, ready to speak out loud. No scrambling through notes. No awkward pauses.</p>
+        </div>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:40px;" class="fade-in-up">
+      <a href="signup.html" class="btn btn-primary btn-lg">Try Isynq Free <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features section" id="features">
+  <div class="container">
+    <div class="section-header fade-in-up">
+      <h2>Why You'll Never Go Back</h2>
+      <p>Isynq works differently than every other tool — and that's the point.</p>
+    </div>
+    <div class="features-grid stagger-children">
+      <div class="feature-card fade-in-up">
+        <div class="feature-card-icon">👁️</div>
+        <h4>Sees Your Screen</h4>
+        <p>It analyzes everything visible so you get answers based on what you're both looking at.</p>
+      </div>
+      <div class="feature-card fade-in-up">
+        <div class="feature-card-icon">🔄</div>
+        <h4>Switch Styles Anytime</h4>
+        <p>Need a quick answer? Use short mode. Want a detailed story? Switch to STAR format mid-conversation.</p>
+      </div>
+      <div class="feature-card fade-in-up">
+        <div class="feature-card-icon">🎧</div>
+        <h4>Listens to Everything</h4>
+        <p>Isynq hears the entire conversation — your answers, their follow-ups, all the context that matters.</p>
+      </div>
+      <div class="feature-card fade-in-up">
+        <div class="feature-card-icon">💰</div>
+        <h4>Pay for What You Use</h4>
+        <p>No expensive monthly subscriptions. No wasted credits. Pay only for the minutes you actually use.</p>
+      </div>
+      <div class="feature-card fade-in-up">
+        <div class="feature-card-icon">🔒</div>
+        <h4>Invisible to Everyone</h4>
+        <p>Completely hidden when you share your screen. Nobody sees it, nobody knows. Zero detection risk.</p>
+      </div>
+      <div class="feature-card fade-in-up">
+        <div class="feature-card-icon">⚡</div>
+        <h4>Instant Responses</h4>
+        <p>Powered by cutting-edge AI models. Get contextual answers in under 2 seconds, every time.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how-it-works section" id="how-it-works">
+  <div class="container">
+    <div class="section-header fade-in-up">
+      <h2>Here's How Simple It Is</h2>
+      <p>Set up once. Use forever. No complicated setup required.</p>
+    </div>
+    <div class="steps-container">
+      <div class="step-row fade-in-up">
+        <div class="step-content">
+          <div class="step-label">Step 1</div>
+          <h3>Pick Your Echo</h3>
+          <p>Choose your meeting type: interview, sales, trivia, or create your own assistant. Each one formats answers differently based on what you need.</p>
+          <a href="signup.html" class="btn btn-primary" style="margin-top: 8px;">Try Isynq Free</a>
+        </div>
+        <div class="step-image">
+          <div style="width:100%;height:100%;background:linear-gradient(135deg,#EFF6FF,#DBEAFE);display:flex;align-items:center;justify-content:center;gap:16px;padding:24px;flex-wrap:wrap;">
+            <div style="background:#fff;border-radius:12px;padding:20px;text-align:center;width:120px;box-shadow:0 2px 8px rgba(0,0,0,0.06);border:2px solid #3B82F6;"><div style="font-size:2rem;">🎯</div><div style="font-size:0.75rem;font-weight:600;margin-top:8px;">Interview</div></div>
+            <div style="background:#fff;border-radius:12px;padding:20px;text-align:center;width:120px;box-shadow:0 2px 8px rgba(0,0,0,0.06);"><div style="font-size:2rem;">📞</div><div style="font-size:0.75rem;font-weight:600;margin-top:8px;">Sales Call</div></div>
+            <div style="background:#fff;border-radius:12px;padding:20px;text-align:center;width:120px;box-shadow:0 2px 8px rgba(0,0,0,0.06);"><div style="font-size:2rem;">🎮</div><div style="font-size:0.75rem;font-weight:600;margin-top:8px;">Trivia</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="step-row fade-in-up">
+        <div class="step-content">
+          <div class="step-label">Step 2</div>
+          <h3>Add Meeting Data</h3>
+          <p>Upload your resume, job description, notes, or any information you have. It learns your story so every answer references YOUR experience.</p>
+          <a href="signup.html" class="btn btn-primary" style="margin-top: 8px;">Try Isynq Free</a>
+        </div>
+        <div class="step-image">
+          <div style="width:100%;height:100%;background:linear-gradient(135deg,#EFF6FF,#DBEAFE);display:flex;align-items:center;justify-content:center;padding:24px;">
+            <div style="background:#fff;border-radius:12px;padding:24px;width:80%;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+              <div style="font-size:0.75rem;font-weight:600;color:#6B7280;margin-bottom:12px;">📄 Uploaded Documents</div>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <div style="background:#F0F6FF;border-radius:8px;padding:10px 14px;font-size:0.75rem;display:flex;justify-content:space-between;"><span>resume_2026.pdf</span><span style="color:#22C55E;">✓</span></div>
+                <div style="background:#F0F6FF;border-radius:8px;padding:10px 14px;font-size:0.75rem;display:flex;justify-content:space-between;"><span>job_description.txt</span><span style="color:#22C55E;">✓</span></div>
+                <div style="background:#F0F6FF;border-radius:8px;padding:10px 14px;font-size:0.75rem;display:flex;justify-content:space-between;"><span>talking_points.md</span><span style="color:#22C55E;">✓</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="step-row fade-in-up">
+        <div class="step-content">
+          <div class="step-label">Step 3</div>
+          <h3>Launch and Go</h3>
+          <p>Hit start and join your meeting. Isynq listens in real-time and gives you instant answers whenever you need them. That's it — you're ready.</p>
+          <a href="signup.html" class="btn btn-primary" style="margin-top: 8px;">Try Isynq Free</a>
+        </div>
+        <div class="step-image">
+          <div style="width:100%;height:100%;background:linear-gradient(135deg,#0F172A,#1E293B);display:flex;align-items:center;justify-content:center;padding:24px;">
+            <div style="text-align:center;">
+              <div style="width:64px;height:64px;border-radius:50%;background:#3B82F6;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 30px rgba(59,130,246,0.5);">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"/></svg>
+              </div>
+              <div style="color:rgba(255,255,255,0.9);font-weight:600;">Recording...</div>
+              <div style="color:rgba(255,255,255,0.4);font-size:0.8rem;margin-top:4px;">Credits: 4:32 remaining</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COMPARISON TABLE -->
+<section class="section" id="comparison" style="background:var(--color-bg-light);">
+  <div class="container">
+    <div class="section-header fade-in-up">
+      <h2>How We Compare</h2>
+      <p>See why smart professionals choose Isynq over everything else.</p>
+    </div>
+    <div class="comparison-table-wrapper fade-in-up">
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>Features</th>
+            <th class="highlight">Isynq</th>
+            <th>Competitor A</th>
+            <th>Competitor B</th>
+            <th>Competitor C</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Listens to entire conversation</td><td class="check-icon">✓</td><td class="cross-icon">✗</td><td class="check-icon">✓</td><td class="cross-icon">✗</td></tr>
+          <tr><td>Multiple response types per meeting</td><td class="check-icon">✓</td><td class="cross-icon">✗</td><td class="cross-icon">✗</td><td class="cross-icon">✗</td></tr>
+          <tr><td>Pay only for what you use</td><td class="check-icon">✓</td><td class="cross-icon">✗</td><td class="cross-icon">✗</td><td class="check-icon">✓</td></tr>
+          <tr><td>Custom knowledge (resume, docs)</td><td class="text-blue">Advanced</td><td class="text-blue">Basic</td><td class="cross-icon">✗</td><td class="text-blue">Basic</td></tr>
+          <tr><td>Structured templates (STAR, etc.)</td><td class="check-icon">✓</td><td class="cross-icon">✗</td><td class="cross-icon">✗</td><td class="cross-icon">✗</td></tr>
+          <tr><td>Works for interviews, sales & meetings</td><td class="check-icon">✓</td><td class="check-icon">✓</td><td class="cross-icon">✗</td><td class="cross-icon">✗</td></tr>
+          <tr><td>Invisible to screen sharing</td><td class="check-icon">✓</td><td class="check-icon">✓</td><td class="cross-icon">✗</td><td class="check-icon">✓</td></tr>
+          <tr><td>Screen analyzer for coding</td><td class="check-icon">✓</td><td class="cross-icon">✗</td><td class="cross-icon">✗</td><td class="cross-icon">✗</td></tr>
+          <tr><td>Works on mobile</td><td class="check-icon">✓</td><td class="cross-icon">✗</td><td class="cross-icon">✗</td><td class="check-icon">✓</td></tr>
+          <tr><td>Free to start</td><td class="text-blue">5 min/hr free</td><td class="cross-icon">✗</td><td class="text-blue">Trial</td><td class="text-blue">Limited</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="section" id="pricing">
+  <div class="container">
+    <div class="section-header fade-in-up">
+      <h2>Simple Usage Pricing</h2>
+      <p>Pay only for active assist minutes. Purchased minutes never expire. No lock-in.</p>
+    </div>
+    <div class="pricing-grid fade-in-up">
+      <div class="pricing-card">
+        <h3>Free</h3>
+        <div class="pricing-price">$0<span></span></div>
+        <div class="pricing-desc">Free 5 Min Per Hour. Perfect for testing or quick help.</div>
+        <ul class="pricing-features">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Real-time Transcription</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Instant AI Responses</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Invisible to screen sharing</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Screen Analyzer</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Custom Knowledge Support</li>
+        </ul>
+        <a href="signup.html" class="btn btn-secondary">Get Started</a>
+      </div>
+      <div class="pricing-card featured">
+        <div class="pricing-badge">Most Popular</div>
+        <h3>Standard</h3>
+        <div class="pricing-price">$12.99<span> / hour</span></div>
+        <div class="pricing-desc">Best for interviews and important calls.</div>
+        <ul class="pricing-features">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Real-time Transcription</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Instant AI Responses</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Invisible to screen sharing</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Screen Analyzer</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Priority Support</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Minutes never expire</li>
+        </ul>
+        <a href="signup.html" class="btn btn-primary">Get Started</a>
+      </div>
+      <div class="pricing-card">
+        <h3>Enterprise</h3>
+        <div class="pricing-price" style="font-size:1.75rem;">Let's Talk</div>
+        <div class="pricing-desc">Built for teams and high-volume users.</div>
+        <ul class="pricing-features">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> All Professional Features</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Custom Integrations</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Enterprise-grade Security</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Team member invites</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Dedicated Account Manager</li>
+        </ul>
+        <a href="signup.html" class="btn btn-secondary">Contact Team</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA BANNER -->
+<section class="cta-banner fade-in-up">
+  <div class="container">
+    <h2>Your Next Big Moment Is Coming</h2>
+    <p>Don't show up unprepared. Get 5 free minutes every hour to test Isynq. No credit card needed.</p>
+    <a href="signup.html" class="btn btn-primary btn-lg">Get Started Free <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+    <div class="trust-badges">
+      <div class="trust-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> No credit card</div>
+      <div class="trust-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Ready in 5 minutes</div>
+      <div class="trust-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Works with all platforms</div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="section" id="testimonials">
+  <div class="container">
+    <div class="section-header fade-in-up">
+      <h2>What Our Users Say</h2>
+    </div>
+    <div class="testimonials-track">
+      <div class="testimonial-card">
+        <p>"During my interview, I got two questions I hadn't prepped for. Isynq gave me a clear outline in seconds. I stayed calm and got the offer."</p>
+        <div class="testimonial-author"><div class="testimonial-avatar">A</div><div><div class="testimonial-name">Alex K.</div><div class="testimonial-role">Software Engineer</div></div></div>
+      </div>
+      <div class="testimonial-card">
+        <p>"A prospect raised a pricing objection. The suggestion gave me a calm, direct reply. We kept momentum and booked the follow-up call."</p>
+        <div class="testimonial-author"><div class="testimonial-avatar">S</div><div><div class="testimonial-name">Sarah M.</div><div class="testimonial-role">Sales Lead</div></div></div>
+      </div>
+      <div class="testimonial-card">
+        <p>"In a team trivia round, it showed the answer while I was muted. I jumped in fast and we won by one point. Absolute game changer!"</p>
+        <div class="testimonial-author"><div class="testimonial-avatar">J</div><div><div class="testimonial-name">James T.</div><div class="testimonial-role">Product Manager</div></div></div>
+      </div>
+      <div class="testimonial-card">
+        <p>"During a fast meeting question, it pulled up the right talking point before I even spoke. I responded instantly and stayed in flow."</p>
+        <div class="testimonial-author"><div class="testimonial-avatar">R</div><div><div class="testimonial-name">Riya P.</div><div class="testimonial-role">Consultant</div></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="section" id="faqs" style="background:var(--color-bg-light);">
+  <div class="container">
+    <div class="section-header fade-in-up">
+      <h2>Common Questions</h2>
+      <p>Everything you're wondering about before you try it.</p>
+    </div>
+    <div class="faq-list fade-in-up">
+      <div class="faq-item active">
+        <button class="faq-question">Will meeting participants know I'm using Isynq?
+          <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-answer"><p>No. Isynq never "joins" as a visible participant, injects bots, or shows overlays to others. It runs privately on your device so nobody else sees it.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-question">Do I need to share my screen or a browser tab for it to work?
+          <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-answer"><p>No. Isynq works by listening through your device's microphone. You don't need to share anything — it captures audio privately and processes it locally.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-question">How are minutes / credits charged?
+          <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-answer"><p>You're only charged for minutes when Isynq is actively assisting during a session. If you pause or stop, billing stops immediately. Free users get 5 minutes per hour automatically.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-question">Do unused minutes expire?
+          <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-answer"><p>Never. Purchased minutes stay in your account forever. Use them whenever you need, with no expiration or pressure to use them up.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-question">Why Isynq instead of ChatGPT or generic AI tools?
+          <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-answer"><p>ChatGPT requires you to type, tab switch, and manually format. Isynq listens in real-time, understands context from your entire conversation, references your personal documents, and delivers answers formatted for speaking — all invisibly and instantly.</p></div>
+      </div>
+    </div>
+    <div class="confused-cta fade-in-up">
+      <p>Still confused? Send us your question and we'll reach out to you.</p>
+      <a href="#" class="btn btn-primary">Book a Free Call</a>
+    </div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section class="cta-banner" style="background:#fff;padding:60px 0;">
+  <div class="container fade-in-up">
+    <h2>Join thousands who stopped fumbling their words</h2>
+    <a href="signup.html" class="btn btn-primary btn-lg" style="margin-top:8px;">Try Isynq Free</a>
+    <div class="trust-badges">
+      <div class="trust-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> No credit card</div>
+      <div class="trust-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Ready in 5 minutes</div>
+      <div class="trust-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Works with all platforms</div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a href="index.html" class="header-logo" style="margin-bottom:0;"><div class="logo-icon">I</div><span>Isynq</span></a>
+        <p>Your AI companion that helps you confidently answer every question in meetings, interviews, and calls. Never be caught off-guard again.</p>
+        <div class="footer-social">
+          <a href="#" aria-label="Instagram">📷</a>
+          <a href="#" aria-label="YouTube">▶️</a>
+          <a href="#" aria-label="LinkedIn">💼</a>
+          <a href="#" aria-label="X">✖️</a>
+        </div>
+      </div>
+      <div class="footer-col">
+        <h4>Product</h4>
+        <a href="#features">Features</a>
+        <a href="#how-it-works">How it works</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#faqs">FAQ</a>
+        <a href="ai-interview-assistant.html">AI Interview Assistant</a>
+      </div>
+      <div class="footer-col">
+        <h4>Legal</h4>
+        <a href="privacy-policy.html">Privacy Policy</a>
+        <a href="terms-of-use.html">Terms of Service</a>
+        <a href="acceptable-use.html">Acceptable Use Policy</a>
+      </div>
+      <div class="footer-col">
+        <h4>Compare</h4>
+        <a href="final-round-ai-alternative.html">vs Competitor A</a>
+        <a href="cluely-ai-alternative.html">vs Competitor B</a>
+        <a href="parakeet-ai-alternative.html">vs Competitor C</a>
+        <a href="aiapply-alternative.html">vs Competitor D</a>
+        <a href="verve-ai-alternative.html">vs Competitor E</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Isynq. All rights reserved.</span>
+      <span>Contact: <a href="mailto:support@isynq.ai">support@isynq.ai</a></span>
+    </div>
+  </div>
+</footer>
+
+<script src="js/storage.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
+
+
+

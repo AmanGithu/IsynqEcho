@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Echo — Isynq</title>
+  <link rel="stylesheet" href="../css/design-system.css">
+  <link rel="stylesheet" href="../css/animations.css">
+  <link rel="stylesheet" href="../css/copilot.css">
+</head>
+<body>
+<div class="copilot-layout">
+  <!-- Top Bar -->
+  <header class="copilot-header">
+    <div class="copilot-header-left">
+      <div class="copilot-logo"><div class="logo-icon">I</div> Echo</div>
+      <div class="session-status" id="session-status">
+        <span class="recording-dot" id="rec-dot"></span>
+        <span id="status-text">Ready</span>
+      </div>
+    </div>
+    <div class="copilot-header-center">
+      <select class="format-selector" id="format-select">
+        <option value="short">Short Answer</option>
+        <option value="star">STAR Format</option>
+        <option value="detailed">Detailed</option>
+        <option value="coding">Code Solution</option>
+      </select>
+      <button class="control-btn" id="settings-btn" title="Settings">⚙️</button>
+    </div>
+    <div class="copilot-header-right">
+      <div class="credits-bar">⏱️ <span class="time" id="credits-time">5:00</span></div>
+      <button class="end-session-btn" id="end-btn" onclick="endSession()">End Session</button>
+    </div>
+  </header>
+
+  <!-- Main Split Panel -->
+  <div class="copilot-main">
+    <!-- LEFT: Transcript -->
+    <div class="transcript-panel">
+      <div class="panel-header">
+        <h3>🎤 Live Transcript</h3>
+        <span id="transcript-count" style="font-size:0.75rem;color:rgba(255,255,255,0.4);">0 entries</span>
+      </div>
+      <div class="transcript-body" id="transcript-body">
+        <div class="transcript-placeholder" id="transcript-placeholder">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:48px;height:48px;opacity:0.4;">
+            <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>
+          </svg>
+          <p>Click the microphone button below to start listening</p>
+          <p style="font-size:0.75rem;">Isynq will detect questions automatically</p>
+        </div>
+      </div>
+      <div class="copilot-controls">
+        <button class="control-btn" id="clear-btn" title="Clear transcript" onclick="clearTranscript()">🗑️</button>
+        <button class="mic-btn" id="mic-btn" onclick="toggleMic()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+        </button>
+        <button class="control-btn" id="manual-ask-btn" title="Ask manually" onclick="showManualInput()">✏️</button>
+      </div>
+    </div>
+
+    <!-- RIGHT: AI Response -->
+    <div class="response-panel">
+      <div class="panel-header">
+        <h3>💡 AI Response</h3>
+        <span id="question-count" style="font-size:0.75rem;color:rgba(255,255,255,0.4);">0 questions</span>
+      </div>
+      <div class="response-body" id="response-body">
+        <div class="response-placeholder" id="response-placeholder">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:48px;height:48px;opacity:0.4;">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+          </svg>
+          <p>AI responses will appear here when questions are detected</p>
+          <p style="font-size:0.75rem;">You can also type questions manually using the ✏️ button</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Manual Question Input (hidden by default) -->
+  <div id="manual-input-bar" style="display:none;position:fixed;bottom:0;left:0;right:0;background:rgba(15,23,42,0.98);padding:16px 20px;border-top:1px solid rgba(255,255,255,0.1);z-index:50;">
+    <form style="display:flex;gap:12px;max-width:800px;margin:0 auto;" onsubmit="submitManualQuestion(event)">
+      <input type="text" id="manual-question" class="form-input" placeholder="Type a question to get an AI answer..." style="flex:1;background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.15);color:#fff;">
+      <button type="submit" class="btn btn-primary btn-sm">Ask AI</button>
+      <button type="button" class="btn btn-ghost btn-sm" style="color:rgba(255,255,255,0.5);" onclick="hideManualInput()">✕</button>
+    </form>
+  </div>
+
+  <!-- Settings Modal -->
+  <div class="settings-modal" id="settings-modal">
+    <div class="settings-modal-content">
+      <h3>⚙️ Echo Settings</h3>
+      <div class="form-group">
+        <label class="form-label">AI Provider</label>
+        <select class="form-input" id="setting-provider" style="background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.15);color:#fff;">
+          <option value="openai">OpenAI (GPT-4o-mini)</option>
+          <option value="gemini">Google Gemini</option>
+          <option value="ollama">Ollama (Local API)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" id="setting-apikey-label">API Key / Base URL</label>
+        <input class="form-input" type="password" id="setting-apikey" placeholder="Paste your API key or http://localhost:11434">
+        <span style="font-size:0.75rem;color:rgba(255,255,255,0.4);" id="setting-apikey-help">Your key is stored locally and never sent to our servers.</span>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Model</label>
+        <input class="form-input" type="text" id="setting-model" placeholder="e.g. gpt-4o-mini, gemini-2.0-flash or llama3">
+      </div>
+      <div style="display:flex;gap:12px;margin-top:16px;">
+        <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
+        <button class="btn btn-ghost" style="color:rgba(255,255,255,0.5);" onclick="closeSettings()">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../js/storage.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/credits.js"></script>
+<script src="../js/llm-engine.js"></script>
+<script src="../js/transcription.js"></script>
+<script>
+// Auth guard
+if (!IsynqAuth.isAuthenticated()) { window.location.href = '../signin.html'; }
+
+// State
+let isRecording = false;
+let questionCount = 0;
+let transcriptCount = 0;
+const session = IsynqStorage.get('copilot_session') || {};
+
+// Initialize LLM with saved settings
+const settings = IsynqStorage.get('user_settings') || {};
+LLMEngine.initialize({
+  provider: settings.preferredLLM || 'openai',
+  apiKey: settings.apiKey || '',
+  model: settings.model || undefined
+});
+
+// Set context from session documents
+if (session.documents) {
+  LLMEngine.setContext(session.documents);
+}
+
+// Initialize credits
+const user = IsynqAuth.getCurrentUser();
+document.getElementById('credits-time').textContent = CreditsManager.formatTime((user?.creditsRemaining || 5) * 60);
+
+// Load settings into modal
+document.getElementById('setting-provider').value = settings.preferredLLM || 'openai';
+document.getElementById('setting-apikey').value = settings.apiKey || '';
+document.getElementById('setting-model').value = settings.model || '';
+
+// Handle dynamic labels for Ollama
+function updateCopilotProviderFields() {
+  const provider = document.getElementById('setting-provider').value;
+  const isOllama = provider === 'ollama';
+  const apikeyInput = document.getElementById('setting-apikey');
+  document.getElementById('setting-apikey-label').textContent = isOllama ? 'Base URL (Ollama API)' : 'API Key';
+  apikeyInput.type = isOllama ? 'url' : 'password';
+  apikeyInput.placeholder = isOllama ? 'http://localhost:11434' : 'Paste your API key here';
+  document.getElementById('setting-apikey-help').textContent = isOllama 
+    ? 'Local URL where your Ollama instance runs.' 
+    : 'Your key is stored locally and never sent to our servers.';
+}
+
+document.getElementById('setting-provider').addEventListener('change', updateCopilotProviderFields);
+updateCopilotProviderFields();
+
+// Handle dynamic labels for Ollama
+function updateCopilotProviderFields() {
+  const provider = document.getElementById('setting-provider').value;
+  const isOllama = provider === 'ollama';
+  const apikeyInput = document.getElementById('setting-apikey');
+  document.getElementById('setting-apikey-label').textContent = isOllama ? 'Base URL (Ollama API)' : 'API Key';
+  apikeyInput.type = isOllama ? 'url' : 'password';
+  apikeyInput.placeholder = isOllama ? 'http://localhost:11434' : 'Paste your API key here';
+  document.getElementById('setting-apikey-help').textContent = isOllama 
+    ? 'Local URL where your Ollama instance runs.' 
+    : 'Your key is stored locally and never sent to our servers.';
+}
+
+document.getElementById('setting-provider').addEventListener('change', updateCopilotProviderFields);
+updateCopilotProviderFields();
+
+// Settings modal
+document.getElementById('settings-btn').addEventListener('click', () => {
+  document.getElementById('settings-modal').classList.add('active');
+});
+
+function closeSettings() {
+  document.getElementById('settings-modal').classList.remove('active');
+}
+
+function saveSettings() {
+  const provider = document.getElementById('setting-provider').value;
+  const apiKey = document.getElementById('setting-apikey').value;
+  const model = document.getElementById('setting-model').value;
+
+  LLMEngine.setProvider(provider, apiKey, model || undefined);
+
+  const s = IsynqStorage.get('user_settings') || {};
+  s.preferredLLM = provider;
+  s.apiKey = apiKey;
+  s.model = model;
+  IsynqStorage.set('user_settings', s);
+
+  closeSettings();
+  showNotification('Settings saved!');
+}
+
+// Initialize Transcription
+TranscriptionService.initialize();
+
+// Handle transcription results
+TranscriptionService.onResult((entry, isInterim) => {
+  if (isInterim) {
+    updateInterim(entry.text);
+    return;
+  }
+  addTranscriptEntry(entry);
+});
+
+// Handle question detection
+TranscriptionService.onQuestionDetected(async (entry) => {
+  questionCount++;
+  document.getElementById('question-count').textContent = `${questionCount} questions`;
+
+  // Show typing indicator
+  showTypingIndicator();
+
+  // Get AI response
+  const format = document.getElementById('format-select').value;
+  try {
+    const result = await LLMEngine.sendQuery(entry.text, format);
+    removeTypingIndicator();
+    addResponseCard(entry.text, result.answer, format, result.error);
+    LLMEngine.addToHistory('interviewer', entry.text);
+    LLMEngine.addToHistory('assistant', result.answer);
+  } catch (err) {
+    removeTypingIndicator();
+    addResponseCard(entry.text, `Error: ${err.message}`, format, true);
+  }
+});
+
+// Status changes
+TranscriptionService.onStatusChange((status) => {
+  const statusEl = document.getElementById('status-text');
+  const dotEl = document.getElementById('rec-dot');
+  switch (status) {
+    case 'listening':
+      statusEl.textContent = 'Listening...';
+      dotEl.style.background = '#EF4444';
+      break;
+    case 'silence':
+      statusEl.textContent = 'Waiting for speech...';
+      break;
+    case 'stopped':
+      statusEl.textContent = 'Stopped';
+      dotEl.style.background = '#6B7280';
+      break;
+    case 'denied':
+      statusEl.textContent = 'Mic access denied';
+      showNotification('Microphone access was denied. Please allow it in your browser settings.', 'error');
+      break;
+    case 'unsupported':
+      statusEl.textContent = 'Not supported';
+      showNotification('Speech recognition is not supported in this browser. Please use Chrome.', 'error');
+      break;
+  }
+});
+
+// Toggle microphone
+function toggleMic() {
+  const micBtn = document.getElementById('mic-btn');
+  if (!isRecording) {
+    const started = TranscriptionService.start();
+    if (started) {
+      isRecording = true;
+      micBtn.classList.add('recording');
+      document.getElementById('transcript-placeholder').style.display = 'none';
+      CreditsManager.startBilling();
+      CreditsManager.onUpdate((data) => {
+        document.getElementById('credits-time').textContent = data.formatted;
+      });
+      CreditsManager.onDepleted(() => {
+        toggleMic();
+        showNotification('Credits depleted! Session paused.', 'error');
+      });
+    }
+  } else {
+    isRecording = false;
+    TranscriptionService.stop();
+    micBtn.classList.remove('recording');
+    document.getElementById('status-text').textContent = 'Paused';
+    const usage = CreditsManager.stopBilling();
+  }
+}
+
+// Add transcript entry to UI
+function addTranscriptEntry(entry) {
+  const body = document.getElementById('transcript-body');
+  const placeholder = document.getElementById('transcript-placeholder');
+  if (placeholder) placeholder.style.display = 'none';
+
+  // Remove interim element if exists
+  const interim = document.getElementById('interim-text');
+  if (interim) interim.remove();
+
+  const div = document.createElement('div');
+  div.className = `transcript-entry ${entry.isQuestion ? 'question' : ''}`;
+  div.innerHTML = `
+    <div class="speaker">${entry.speaker === 'interviewer' ? '🗣️ Speaker' : '🎤 You'}</div>
+    <div class="text">${entry.text}</div>
+    ${entry.isQuestion ? '<div class="question-detected-badge">❓ Question Detected</div>' : ''}
+  `;
+  body.appendChild(div);
+  body.scrollTop = body.scrollHeight;
+
+  transcriptCount++;
+  document.getElementById('transcript-count').textContent = `${transcriptCount} entries`;
+}
+
+// Update interim text
+function updateInterim(text) {
+  let interim = document.getElementById('interim-text');
+  if (!interim) {
+    const body = document.getElementById('transcript-body');
+    interim = document.createElement('div');
+    interim.id = 'interim-text';
+    interim.className = 'transcript-entry';
+    interim.style.opacity = '0.5';
+    body.appendChild(interim);
+  }
+  interim.innerHTML = `<div class="speaker">...</div><div class="text">${text}</div>`;
+  const body = document.getElementById('transcript-body');
+  body.scrollTop = body.scrollHeight;
+}
+
+// Add AI response card
+function addResponseCard(question, answer, format, isError) {
+  const body = document.getElementById('response-body');
+  const placeholder = document.getElementById('response-placeholder');
+  if (placeholder) placeholder.style.display = 'none';
+
+  const formatLabels = { short: '⚡ Short Answer', star: '⭐ STAR Format', detailed: '📝 Detailed', coding: '💻 Code Solution' };
+  const card = document.createElement('div');
+  card.className = 'response-card';
+  if (isError) card.style.borderColor = 'rgba(239,68,68,0.3)';
+  card.innerHTML = `
+    <div class="response-format">${formatLabels[format] || '💡 Response'}</div>
+    <div style="font-size:0.8125rem;color:rgba(255,255,255,0.5);margin-bottom:8px;font-style:italic;">"${question}"</div>
+    <div class="response-text">${formatAnswer(answer)}</div>
+  `;
+  body.appendChild(card);
+  body.scrollTop = body.scrollHeight;
+}
+
+// Format answer with markdown-like styling
+function formatAnswer(text) {
+  return text
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n/g, '<br>');
+}
+
+// Typing indicator
+function showTypingIndicator() {
+  const body = document.getElementById('response-body');
+  const placeholder = document.getElementById('response-placeholder');
+  if (placeholder) placeholder.style.display = 'none';
+
+  const typing = document.createElement('div');
+  typing.id = 'typing-indicator';
+  typing.className = 'response-card';
+  typing.style.background = 'rgba(255,255,255,0.04)';
+  typing.innerHTML = `<div class="response-format">⏳ Generating...</div><div class="typing-indicator"><span></span><span></span><span></span></div>`;
+  body.appendChild(typing);
+  body.scrollTop = body.scrollHeight;
+}
+
+function removeTypingIndicator() {
+  const t = document.getElementById('typing-indicator');
+  if (t) t.remove();
+}
+
+// Manual question input
+function showManualInput() {
+  document.getElementById('manual-input-bar').style.display = 'block';
+  document.getElementById('manual-question').focus();
+}
+
+function hideManualInput() {
+  document.getElementById('manual-input-bar').style.display = 'none';
+}
+
+async function submitManualQuestion(e) {
+  e.preventDefault();
+  const input = document.getElementById('manual-question');
+  const question = input.value.trim();
+  if (!question) return;
+
+  // Add to transcript
+  addTranscriptEntry({ text: question, speaker: 'manual', isQuestion: true, timestamp: Date.now() });
+
+  input.value = '';
+  hideManualInput();
+
+  questionCount++;
+  document.getElementById('question-count').textContent = `${questionCount} questions`;
+  showTypingIndicator();
+
+  const format = document.getElementById('format-select').value;
+  try {
+    const result = await LLMEngine.sendQuery(question, format);
+    removeTypingIndicator();
+    addResponseCard(question, result.answer, format, result.error);
+  } catch (err) {
+    removeTypingIndicator();
+    addResponseCard(question, `Error: ${err.message}`, format, true);
+  }
+}
+
+// Clear transcript
+function clearTranscript() {
+  const body = document.getElementById('transcript-body');
+  body.innerHTML = '';
+  transcriptCount = 0;
+  document.getElementById('transcript-count').textContent = '0 entries';
+  TranscriptionService.clearTranscript();
+  LLMEngine.clearHistory();
+}
+
+// End session
+async function endSession() {
+  if (isRecording) toggleMic();
+
+  const usage = CreditsManager.stopBilling();
+
+  // Save meeting to history
+  try {
+    await IsynqStorage.saveMeeting({
+      type: session.type || 'general',
+      date: new Date().toISOString(),
+      duration: Math.ceil((usage?.duration || 0) / 60),
+      questionsAnswered: questionCount,
+      transcript: TranscriptionService.getFullTranscript()
+    });
+  } catch(e) { console.log('Save error:', e); }
+
+  window.location.href = 'dashboard.html';
+}
+
+// Notification helper
+function showNotification(msg, type = 'success') {
+  const n = document.createElement('div');
+  n.style.cssText = `position:fixed;top:70px;right:20px;padding:12px 20px;border-radius:10px;font-size:0.875rem;font-weight:500;z-index:9999;
+    background:${type === 'error' ? '#FEE2E2' : '#DCFCE7'};color:${type === 'error' ? '#991B1B' : '#166534'};
+    border:1px solid ${type === 'error' ? '#EF4444' : '#22C55E'};box-shadow:0 4px 12px rgba(0,0,0,0.1);
+    opacity:0;transform:translateY(-10px);transition:all 0.3s ease;`;
+  n.textContent = msg;
+  document.body.appendChild(n);
+  setTimeout(() => { n.style.opacity = '1'; n.style.transform = 'translateY(0)'; }, 50);
+  setTimeout(() => { n.style.opacity = '0'; setTimeout(() => n.remove(), 300); }, 3000);
+}
+
+// Close settings modal on outside click
+document.getElementById('settings-modal').addEventListener('click', (e) => {
+  if (e.target.classList.contains('settings-modal')) closeSettings();
+});
+
+// Warn before leaving
+window.addEventListener('beforeunload', (e) => {
+  if (isRecording) { e.preventDefault(); e.returnValue = ''; }
+});
+</script>
+</body>
+</html>
+
+
+

@@ -1,0 +1,11 @@
+/* ISYNQ — Legal Page Styles */
+.legal-page { padding-top: calc(var(--header-height) + 48px); padding-bottom: 80px; background: #fff; }
+.legal-content { max-width: 780px; margin: 0 auto; }
+.legal-content h1 { margin-bottom: 8px; font-size: clamp(1.75rem, 3vw, 2.5rem); }
+.legal-meta { font-size: 0.875rem; color: var(--color-text-tertiary); margin-bottom: 40px; }
+.legal-content h2 { font-size: 1.25rem; margin-top: 32px; margin-bottom: 12px; color: var(--color-text-primary); }
+.legal-content h3 { font-size: 1.0625rem; margin-top: 24px; margin-bottom: 8px; }
+.legal-content p { margin-bottom: 16px; font-size: 0.9375rem; line-height: 1.8; }
+.legal-content ul { margin-bottom: 16px; padding-left: 24px; }
+.legal-content ul li { font-size: 0.9375rem; line-height: 1.8; color: var(--color-text-secondary); margin-bottom: 6px; list-style: disc; }
+.legal-content a { color: var(--color-primary); text-decoration: underline; }
