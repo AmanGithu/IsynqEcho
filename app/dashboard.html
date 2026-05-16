@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,184 +9,231 @@
   <link rel="stylesheet" href="../css/components.css">
   <link rel="stylesheet" href="../css/dashboard.css">
 </head>
+
 <body>
-<div class="app-layout">
-  <!-- App Header -->
-  <header class="app-header">
-    <div class="header-inner">
-      <a href="../index.html" class="header-logo"><div class="logo-icon">I</div><span>Isynq</span></a>
-      <nav class="header-nav" style="gap:20px;">
-        <a href="dashboard.html" style="color:var(--color-primary);font-weight:600;">Dashboard</a>
-        <a href="settings.html">Settings</a>
-      </nav>
-      <div class="header-actions">
-        <span id="user-name" style="font-weight:500;font-size:0.9375rem;color:var(--color-text-secondary);"></span>
-        <button onclick="handleLogout()" class="btn btn-ghost btn-sm" style="color:var(--color-danger);">Sign Out</button>
+  <div class="app-layout">
+    <!-- App Header -->
+    <header class="app-header">
+      <div class="header-inner">
+        <a href="../index.html" class="header-logo">
+          <div class="logo-icon">I</div><span>Isynq</span>
+        </a>
+        <nav class="header-nav" style="gap:20px;">
+          <a href="dashboard.html" style="color:var(--color-primary);font-weight:600;">Dashboard</a>
+          <a href="settings.html">Settings</a>
+        </nav>
+        <div class="header-actions">
+          <span id="user-name" style="font-weight:500;font-size:0.9375rem;color:var(--color-text-secondary);"></span>
+          <button onclick="handleLogout()" class="btn btn-ghost btn-sm" style="color:var(--color-danger);">Sign
+            Out</button>
+        </div>
+        <button class="hamburger" aria-label="Menu"
+          onclick="document.querySelector('.mobile-dash-nav').classList.toggle('open')"><span></span><span></span><span></span></button>
       </div>
-      <button class="hamburger" aria-label="Menu" onclick="document.querySelector('.mobile-dash-nav').classList.toggle('open')"><span></span><span></span><span></span></button>
-    </div>
-  </header>
+    </header>
 
-  <div class="mobile-dash-nav" style="display:none;position:fixed;top:var(--header-height);left:0;right:0;background:#fff;padding:16px;z-index:999;box-shadow:var(--shadow-md);">
-    <a href="dashboard.html" style="display:block;padding:12px;font-weight:600;color:var(--color-primary);">Dashboard</a>
-    <a href="settings.html" style="display:block;padding:12px;">Settings</a>
-    <button onclick="handleLogout()" style="display:block;padding:12px;color:var(--color-danger);width:100%;text-align:left;">Sign Out</button>
-  </div>
-
-  <div class="app-content">
-    <!-- Welcome Banner -->
-    <div class="welcome-banner">
-      <div>
-        <h2 id="welcome-text">Welcome back!</h2>
-        <p>Ready for your next meeting? Launch an Echo session below.</p>
-      </div>
-      <div class="credits-display">
-        <div class="credits-number" id="credits-count">5</div>
-        <div class="credits-label">minutes remaining</div>
-      </div>
+    <div class="mobile-dash-nav"
+      style="display:none;position:fixed;top:var(--header-height);left:0;right:0;background:#fff;padding:16px;z-index:999;box-shadow:var(--shadow-md);">
+      <a href="dashboard.html"
+        style="display:block;padding:12px;font-weight:600;color:var(--color-primary);">Dashboard</a>
+      <a href="settings.html" style="display:block;padding:12px;">Settings</a>
+      <button onclick="handleLogout()"
+        style="display:block;padding:12px;color:var(--color-danger);width:100%;text-align:left;">Sign Out</button>
     </div>
 
-    <!-- Echo Types -->
-    <div class="copilot-section">
-      <h3>Start a New Session</h3>
-      <div class="copilot-grid">
-        <div class="copilot-type-card" onclick="selectCopilot('interview')" id="card-interview">
-          <div class="copilot-type-icon">🎯</div>
-          <h4>Interview Echo</h4>
-          <p>Upload your resume and job description. Get real-time answers during interviews.</p>
+    <div class="app-content">
+      <!-- Welcome Banner -->
+      <div class="welcome-banner">
+        <div>
+          <h2 id="welcome-text">Welcome back!</h2>
+          <p>Ready for your next meeting? Launch an Echo session below.</p>
         </div>
-        <div class="copilot-type-card" onclick="selectCopilot('sales')" id="card-sales">
-          <div class="copilot-type-icon">📞</div>
-          <h4>Sales Echo</h4>
-          <p>Upload product docs and pricing. Handle objections and questions with confidence.</p>
-        </div>
-        <div class="copilot-type-card" onclick="selectCopilot('general')" id="card-general">
-          <div class="copilot-type-icon">💬</div>
-          <h4>General Meeting</h4>
-          <p>For meetings, standups, and any conversation where you need quick, smart answers.</p>
+        <div class="credits-display">
+          <div class="credits-number" id="credits-count">5</div>
+          <div class="credits-label">minutes remaining</div>
         </div>
       </div>
-    </div>
 
-    <!-- Meeting Setup (shown after selection) -->
-    <div id="meeting-setup" style="display:none;" class="copilot-section">
-      <h3 id="setup-title">Setup Your Session</h3>
-      <div style="background:#fff;border-radius:16px;padding:32px;border:1px solid var(--color-border-light);">
-        <div class="form-group">
-          <label class="form-label">Upload Documents (paste text)</label>
-          <textarea class="form-input" id="doc-resume" rows="4" placeholder="Paste your resume or relevant experience here..."></textarea>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Meeting Context / Job Description</label>
-          <textarea class="form-input" id="doc-jd" rows="3" placeholder="Paste the job description or meeting context..."></textarea>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Additional Notes (optional)</label>
-          <textarea class="form-input" id="doc-notes" rows="2" placeholder="Any specific points you want to mention..."></textarea>
-        </div>
-        <div style="display:flex;gap:12px;flex-wrap:wrap;">
-          <button class="btn btn-primary btn-lg" onclick="launchCopilot()">🚀 Launch Echo</button>
-          <button class="btn btn-ghost" onclick="cancelSetup()">Cancel</button>
+      <!-- Echo Types -->
+      <div class="copilot-section">
+        <h3>Start a New Session</h3>
+        <div class="copilot-grid">
+          <div class="copilot-type-card" onclick="selectCopilot('interview')" id="card-interview">
+            <div class="copilot-type-icon">🎯</div>
+            <h4>Interview Echo</h4>
+            <p>Upload your resume and job description. Get real-time answers during interviews.</p>
+          </div>
+          <div class="copilot-type-card" onclick="selectCopilot('sales')" id="card-sales">
+            <div class="copilot-type-icon">📞</div>
+            <h4>Sales Echo</h4>
+            <p>Upload product docs and pricing. Handle objections and questions with confidence.</p>
+          </div>
+          <div class="copilot-type-card" onclick="selectCopilot('general')" id="card-general">
+            <div class="copilot-type-icon">💬</div>
+            <h4>General Meeting</h4>
+            <p>For meetings, standups, and any conversation where you need quick, smart answers.</p>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- Meeting History -->
-    <div class="copilot-section">
-      <div class="meeting-history">
-        <div class="meeting-history-header">
-          <h3>📋 Recent Sessions</h3>
+      <!-- Meeting Setup (shown after selection) -->
+      <div id="meeting-setup" style="display:none;" class="copilot-section">
+        <h3 id="setup-title">Setup Your Session</h3>
+        <div style="background:#fff;border-radius:16px;padding:32px;border:1px solid var(--color-border-light);">
+          <div class="form-group">
+            <label class="form-label">Upload Documents (paste text)</label>
+            <textarea class="form-input" id="doc-resume" rows="4"
+              placeholder="Paste your resume or relevant experience here..."></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Meeting Context / Job Description</label>
+            <textarea class="form-input" id="doc-jd" rows="3"
+              placeholder="Paste the job description or meeting context..."></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Additional Notes (optional)</label>
+            <textarea class="form-input" id="doc-notes" rows="2"
+              placeholder="Any specific points you want to mention..."></textarea>
+          </div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;">
+            <button class="btn btn-primary btn-lg" onclick="launchCopilot()">🚀 Launch Echo</button>
+            <button class="btn btn-ghost" onclick="cancelSetup()">Cancel</button>
+          </div>
         </div>
-        <div id="meeting-list">
-          <div class="empty-state">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            <p>No sessions yet. Launch your first Echo to get started!</p>
+      </div>
+
+      <!-- Meeting History -->
+      <div class="copilot-section">
+        <div class="meeting-history">
+          <div class="meeting-history-header">
+            <h3>📋 Recent Sessions</h3>
+          </div>
+          <div id="meeting-list">
+            <div class="empty-state">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <rect x="3" y="4" width="18" height="18" rx="2" />
+                <line x1="16" y1="2" x2="16" y2="6" />
+                <line x1="8" y1="2" x2="8" y2="6" />
+                <line x1="3" y1="10" x2="21" y2="10" />
+              </svg>
+              <p>No sessions yet. Launch your first Echo to get started!</p>
+            </div>
           </div>
         </div>
       </div>
     </div>
   </div>
-</div>
 
-<script src="../js/storage.js"></script>
-<script src="../js/auth.js"></script>
-<script>
-// Auth guard
-if (!IsynqAuth.isAuthenticated()) { window.location.href = '../signin.html'; }
+  <script src="../js/storage.js"></script>
+  <script src="../js/auth.js"></script>
+  <script>
+    // Auth guard
+    if (!IsynqAuth.isAuthenticated()) { window.location.href = '../signin.html'; }
 
-const user = IsynqAuth.getCurrentUser();
-if (user) {
-  document.getElementById('user-name').textContent = user.name;
-  document.getElementById('welcome-text').textContent = `Welcome back, ${user.name.split(' ')[0]}!`;
-  document.getElementById('credits-count').textContent = user.creditsRemaining;
-}
+    const user = IsynqAuth.getCurrentUser();
+    if (user) {
+      document.getElementById('user-name').textContent = user.name;
+      document.getElementById('welcome-text').textContent = `Welcome back, ${user.name.split(' ')[0]}!`;
+      document.getElementById('credits-count').textContent = user.creditsRemaining;
+    }
 
-let selectedType = '';
+    let selectedType = '';
 
-function selectCopilot(type) {
-  selectedType = type;
-  document.querySelectorAll('.copilot-type-card').forEach(c => c.classList.remove('selected'));
-  document.getElementById(`card-${type}`).classList.add('selected');
-  const titles = { interview: 'Interview Session', sales: 'Sales Call Session', general: 'General Meeting Session' };
-  document.getElementById('setup-title').textContent = `Setup: ${titles[type]}`;
-  document.getElementById('meeting-setup').style.display = 'block';
-  document.getElementById('meeting-setup').scrollIntoView({ behavior: 'smooth' });
-}
+    function selectCopilot(type) {
+      selectedType = type;
+      document.querySelectorAll('.copilot-type-card').forEach(c => c.classList.remove('selected'));
+      document.getElementById(`card-${type}`).classList.add('selected');
+      const titles = { interview: 'Interview Session', sales: 'Sales Call Session', general: 'General Meeting Session' };
+      document.getElementById('setup-title').textContent = `Setup: ${titles[type]}`;
+      document.getElementById('meeting-setup').style.display = 'block';
+      document.getElementById('meeting-setup').scrollIntoView({ behavior: 'smooth' });
+    }
 
-function cancelSetup() {
-  document.getElementById('meeting-setup').style.display = 'none';
-  document.querySelectorAll('.copilot-type-card').forEach(c => c.classList.remove('selected'));
-  selectedType = '';
-}
+    function cancelSetup() {
+      document.getElementById('meeting-setup').style.display = 'none';
+      document.querySelectorAll('.copilot-type-card').forEach(c => c.classList.remove('selected'));
+      selectedType = '';
+    }
 
-function launchCopilot() {
-  const resume = document.getElementById('doc-resume').value;
-  const jd = document.getElementById('doc-jd').value;
-  const notes = document.getElementById('doc-notes').value;
+    function launchCopilot() {
+      const resume = document.getElementById('doc-resume').value;
+      const jd = document.getElementById('doc-jd').value;
+      const notes = document.getElementById('doc-notes').value;
 
-  // Save session data
-  IsynqStorage.set('copilot_session', {
-    type: selectedType,
-    documents: { resume, jobDescription: jd, notes },
-    startedAt: new Date().toISOString()
-  });
+      // Save session data
+      IsynqStorage.set('copilot_session', {
+        type: selectedType,
+        documents: { resume, jobDescription: jd, notes },
+        startedAt: new Date().toISOString()
+      });
 
-  window.location.href = 'echo.html';
-}
+      window.location.href = 'echo.html';
+    }
 
-function handleLogout() {
-  IsynqAuth.logout();
-  window.location.href = '../index.html';
-}
+    function handleLogout() {
+      IsynqAuth.logout();
+      window.location.href = '../index.html';
+    }
 
-// Load meeting history
-async function loadHistory() {
-  try {
-    const meetings = await IsynqStorage.getMeetings();
-    if (meetings.length === 0) return;
-    const list = document.getElementById('meeting-list');
-    const icons = { interview: '🎯', sales: '📞', general: '💬' };
-    list.innerHTML = meetings.slice(0, 10).map(m => `
-      <div class="meeting-item">
-        <div class="meeting-info">
-          <div class="meeting-icon">${icons[m.type] || '💬'}</div>
-          <div class="meeting-details">
-            <h4>${m.type ? m.type.charAt(0).toUpperCase() + m.type.slice(1) : 'Meeting'} Session</h4>
-            <span>${m.questionsAnswered || 0} questions answered</span>
+    // Load meeting history
+    async function loadHistory() {
+      const list = document.getElementById('meeting-list');
+      // Show skeletons
+      list.innerHTML = Array(3).fill(0).map(() => `
+        <div class="meeting-item" style="opacity: 0.6; pointer-events: none;">
+          <div class="meeting-info">
+            <div class="meeting-icon skeleton" style="width: 40px; height: 40px; border-radius: 50%;"></div>
+            <div class="meeting-details">
+              <div class="skeleton" style="width: 120px; height: 16px; margin-bottom: 8px;"></div>
+              <div class="skeleton" style="width: 80px; height: 12px;"></div>
+            </div>
+          </div>
+          <div class="meeting-meta">
+            <div class="skeleton" style="width: 40px; height: 14px; margin-bottom: 4px;"></div>
+            <div class="skeleton" style="width: 60px; height: 12px;"></div>
           </div>
         </div>
-        <div class="meeting-meta">
-          <div class="meeting-duration">${m.duration || '0'} min</div>
-          <div>${new Date(m.date).toLocaleDateString()}</div>
-        </div>
-      </div>
-    `).join('');
-  } catch(e) { console.log('No history yet'); }
-}
-loadHistory();
-</script>
+      `).join('');
+
+      try {
+        const meetings = await IsynqStorage.getMeetings();
+        if (meetings.length === 0) {
+          list.innerHTML = `
+            <div class="empty-state">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <rect x="3" y="4" width="18" height="18" rx="2" />
+                <line x1="16" y1="2" x2="16" y2="6" />
+                <line x1="8" y1="2" x2="8" y2="6" />
+                <line x1="3" y1="10" x2="21" y2="10" />
+              </svg>
+              <p>No sessions yet. Launch your first Echo to get started!</p>
+            </div>`;
+          return;
+        }
+        
+        const icons = { interview: '🎯', sales: '📞', general: '💬' };
+        list.innerHTML = meetings.slice(0, 10).map(m => `
+          <div class="meeting-item">
+            <div class="meeting-info">
+              <div class="meeting-icon">${icons[m.type] || '💬'}</div>
+              <div class="meeting-details">
+                <h4>${m.type ? m.type.charAt(0).toUpperCase() + m.type.slice(1) : 'Meeting'} Session</h4>
+                <span>${m.questionsAnswered || 0} questions answered</span>
+              </div>
+            </div>
+            <div class="meeting-meta">
+              <div class="meeting-duration">${m.duration || '0'} min</div>
+              <div>${new Date(m.date).toLocaleDateString()}</div>
+            </div>
+          </div>
+        `).join('');
+      } catch (e) { 
+        console.error('History load error:', e);
+        list.innerHTML = '<p style="text-align:center; padding:20px; color:var(--color-danger);">Failed to load history.</p>';
+      }
+    }
+    loadHistory();
+  </script>
 </body>
+
 </html>
-
-
-

@@ -90,139 +90,39 @@ ${this.contextDocs ? `USER'S BACKGROUND:\n${this.contextDocs}` : ''}`;
   },
 
   async sendQuery(question, format = 'short', screenContext = null) {
-    if (!this.apiKey && this.provider !== 'ollama') {
-      return { answer: '⚠️ Please configure your API key in Settings to get AI-powered responses.', error: true };
-    }
-
     const messages = this.buildMessages(question, format, screenContext);
 
     try {
-      if (this.provider === 'openai') {
-        return await this.callOpenAI(messages);
-      } else if (this.provider === 'ollama') {
-        return await this.callOllama(messages);
-      } else {
-        return await this.callGemini(messages);
-      }
-    } catch (error) {
-      console.error('LLM Error:', error);
-      return { answer: `⚠️ Error: ${error.message}. Check your API key/URL and try again.`, error: true };
-    }
-  },
-
-  async callOpenAI(messages) {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.apiKey}` },
-      body: JSON.stringify({ model: this.model, messages, temperature: 0.7, max_tokens: 800 })
-    });
-
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      throw new Error(err.error?.message || `OpenAI API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return { answer: data.choices[0].message.content, tokens: data.usage?.total_tokens || 0 };
-  },
-
-  async callGemini(messages) {
-    // Convert OpenAI-style messages to Gemini format
-    const systemInstruction = messages.find(m => m.role === 'system')?.content || '';
-    const contents = messages.filter(m => m.role !== 'system').map(m => ({
-      role: m.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: m.content }]
-    }));
-
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${this.apiKey}`,
-      {
+      // Use IsynqStorage.fetchAPI to route through backend
+      const data = await IsynqStorage.fetchAPI('/ai/query', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          system_instruction: { parts: [{ text: systemInstruction }] },
-          contents,
-          generationConfig: { temperature: 0.7, maxOutputTokens: 800 }
+          provider: this.provider,
+          model: this.model,
+          messages,
+          apiKey: this.apiKey // Optional: client-provided key
         })
-      }
-    );
-
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      throw new Error(err.error?.message || `Gemini API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response generated.';
-    return { answer: text, tokens: 0 };
-  },
-
-  async callOllama(messages) {
-    const baseUrl = this.apiKey || 'http://localhost:11434';
-    const model = this.model || 'llama3';
-    
-    const ollamaMessages = messages.map(m => ({
-      role: m.role,
-      content: m.content
-    }));
-
-    const response = await fetch(`${baseUrl}/api/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: model, messages: ollamaMessages, stream: false })
-    });
-
-    if (!response.ok) {
-      throw new Error(`Ollama error: ${response.status}. Make sure Ollama is running and CORS is enabled.`);
-    }
-
-    const data = await response.json();
-    return { answer: data.message?.content || 'No response generated.', tokens: data.eval_count || 0 };
-  },
-
-  // Streaming support for OpenAI
-  async streamQuery(question, format, screenContext, onChunk) {
-    if (!this.apiKey) {
-      onChunk('⚠️ Please configure your API key in Settings.');
-      return;
-    }
-
-    const messages = this.buildMessages(question, format, screenContext);
-
-    if (this.provider === 'openai') {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.apiKey}` },
-        body: JSON.stringify({ model: this.model, messages, temperature: 0.7, max_tokens: 800, stream: true })
       });
 
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let fullText = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n').filter(l => l.startsWith('data: '));
-        for (const line of lines) {
-          const data = line.slice(6);
-          if (data === '[DONE]') continue;
-          try {
-            const parsed = JSON.parse(data);
-            const token = parsed.choices[0]?.delta?.content || '';
-            fullText += token;
-            onChunk(fullText);
-          } catch {}
-        }
-      }
-      return fullText;
-    } else {
-      // Gemini doesn't stream the same way, so use regular call
-      const result = await this.sendQuery(question, format, screenContext);
-      onChunk(result.answer);
-      return result.answer;
+      return { 
+        answer: data.answer, 
+        tokens: data.usage?.total_tokens || 0 
+      };
+    } catch (error) {
+      console.error('LLM Engine Error (via Backend):', error);
+      return { 
+        answer: `⚠️ Error: ${error.message}. Check your backend connection or API settings.`, 
+        error: true 
+      };
     }
+  },
+
+  // Streaming support (Placeholder for backend streaming)
+  async streamQuery(question, format, screenContext, onChunk) {
+    // For now, redirect to non-streaming backend call as the simple backend doesn't support SSE yet
+    const result = await this.sendQuery(question, format, screenContext);
+    onChunk(result.answer);
+    return result.answer;
   },
 
   clearHistory() {

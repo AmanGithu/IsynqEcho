@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,111 +9,118 @@
   <link rel="stylesheet" href="../css/components.css">
   <link rel="stylesheet" href="../css/dashboard.css">
 </head>
+
 <body>
-<div class="app-layout">
-  <header class="app-header">
-    <div class="header-inner">
-      <a href="../index.html" class="header-logo"><div class="logo-icon">I</div><span>Isynq</span></a>
-      <nav class="header-nav" style="gap:20px;">
-        <a href="dashboard.html">Dashboard</a>
-        <a href="settings.html" style="color:var(--color-primary);font-weight:600;">Settings</a>
-      </nav>
-      <div class="header-actions">
-        <button onclick="IsynqAuth.logout();window.location.href='../index.html'" class="btn btn-ghost btn-sm" style="color:var(--color-danger);">Sign Out</button>
-      </div>
-    </div>
-  </header>
-  <div class="app-content">
-    <h2 style="margin-bottom:24px;">Settings</h2>
-    <div style="display:grid;gap:24px;max-width:600px;">
-      <div class="card">
-        <h4 style="margin-bottom:16px;">🤖 AI Provider</h4>
-        <div class="form-group">
-          <label class="form-label">Provider</label>
-          <select class="form-input" id="s-provider">
-            <option value="openai">OpenAI (GPT-4o-mini)</option>
-            <option value="gemini">Google Gemini (2.0 Flash)</option>
-            <option value="ollama">Ollama (Local API)</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label" id="s-apikey-label">API Key / Base URL</label>
-          <input class="form-input" type="password" id="s-apikey" placeholder="Paste your API key or http://localhost:11434">
-          <span style="font-size:0.8125rem;color:var(--color-text-tertiary);" id="s-apikey-help">Stored locally in your browser. Never sent to our servers.</span>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Model (optional override)</label>
-          <input class="form-input" type="text" id="s-model" placeholder="e.g. gpt-4o, gemini-2.5-flash, or llama3">
+  <div class="app-layout">
+    <header class="app-header">
+      <div class="header-inner">
+        <a href="../index.html" class="header-logo">
+          <div class="logo-icon">I</div><span>Isynq</span>
+        </a>
+        <nav class="header-nav" style="gap:20px;">
+          <a href="dashboard.html">Dashboard</a>
+          <a href="settings.html" style="color:var(--color-primary);font-weight:600;">Settings</a>
+        </nav>
+        <div class="header-actions">
+          <button onclick="IsynqAuth.logout();window.location.href='../index.html'" class="btn btn-ghost btn-sm"
+            style="color:var(--color-danger);">Sign Out</button>
         </div>
       </div>
-      <div class="card">
-        <h4 style="margin-bottom:16px;">📝 Response Defaults</h4>
-        <div class="form-group">
-          <label class="form-label">Default Format</label>
-          <select class="form-input" id="s-format">
-            <option value="short">Short Answer</option>
-            <option value="star">STAR Format</option>
-            <option value="detailed">Detailed</option>
-            <option value="coding">Code Solution</option>
-          </select>
+    </header>
+    <div class="app-content">
+      <h2 style="margin-bottom:24px;">Settings</h2>
+      <div style="display:grid;gap:24px;max-width:600px;">
+        <div class="card">
+          <h4 style="margin-bottom:16px;">🤖 AI Provider</h4>
+          <div class="form-group">
+            <label class="form-label">Provider</label>
+            <select class="form-input" id="s-provider">
+              <option value="openai">OpenAI (GPT-4o-mini)</option>
+              <option value="gemini">Google Gemini (2.0 Flash)</option>
+              <option value="ollama">Ollama (Local API)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" id="s-apikey-label">API Key / Base URL</label>
+            <input class="form-input" type="password" id="s-apikey"
+              placeholder="Paste your API key or http://localhost:11434">
+            <span style="font-size:0.8125rem;color:var(--color-text-tertiary);" id="s-apikey-help">Stored locally in
+              your browser. Never sent to our servers.</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Model (optional override)</label>
+            <input class="form-input" type="text" id="s-model" placeholder="e.g. gpt-4o, gemini-2.5-flash, or llama3">
+          </div>
         </div>
+        <div class="card">
+          <h4 style="margin-bottom:16px;">📝 Response Defaults</h4>
+          <div class="form-group">
+            <label class="form-label">Default Format</label>
+            <select class="form-input" id="s-format">
+              <option value="short">Short Answer</option>
+              <option value="star">STAR Format</option>
+              <option value="detailed">Detailed</option>
+              <option value="coding">Code Solution</option>
+            </select>
+          </div>
+        </div>
+        <div class="card">
+          <h4 style="margin-bottom:16px;">👤 Account</h4>
+          <div id="account-info"></div>
+          <button class="btn btn-secondary btn-sm"
+            style="margin-top:16px;border-color:var(--color-danger);color:var(--color-danger);"
+            onclick="if(confirm('Clear all data?')){IsynqStorage.clearAllData();IsynqAuth.logout();window.location.href='../index.html';}">Delete
+            All Data</button>
+        </div>
+        <button class="btn btn-primary" onclick="saveAllSettings()">Save Settings</button>
       </div>
-      <div class="card">
-        <h4 style="margin-bottom:16px;">👤 Account</h4>
-        <div id="account-info"></div>
-        <button class="btn btn-secondary btn-sm" style="margin-top:16px;border-color:var(--color-danger);color:var(--color-danger);" onclick="if(confirm('Clear all data?')){IsynqStorage.clearAllData();IsynqAuth.logout();window.location.href='../index.html';}">Delete All Data</button>
-      </div>
-      <button class="btn btn-primary" onclick="saveAllSettings()">Save Settings</button>
     </div>
   </div>
-</div>
-<script src="../js/storage.js"></script>
-<script src="../js/auth.js"></script>
-<script>
-if (!IsynqAuth.isAuthenticated()) { window.location.href = '../signin.html'; }
-const user = IsynqAuth.getCurrentUser();
-const settings = IsynqStorage.get('user_settings') || {};
-document.getElementById('s-provider').value = settings.preferredLLM || 'openai';
-document.getElementById('s-apikey').value = settings.apiKey || '';
-document.getElementById('s-model').value = settings.model || '';
-document.getElementById('s-format').value = settings.responseFormat || 'short';
+  <script src="../js/storage.js"></script>
+  <script src="../js/auth.js"></script>
+  <script>
+    if (!IsynqAuth.isAuthenticated()) { window.location.href = '../signin.html'; }
+    const user = IsynqAuth.getCurrentUser();
+    const settings = IsynqStorage.get('user_settings') || {};
+    document.getElementById('s-provider').value = settings.preferredLLM || 'openai';
+    document.getElementById('s-apikey').value = settings.apiKey || '';
+    document.getElementById('s-model').value = settings.model || '';
+    document.getElementById('s-format').value = settings.responseFormat || 'short';
 
-// Handle dynamic labels for Ollama
-function updateProviderFields() {
-  const provider = document.getElementById('s-provider').value;
-  const isOllama = provider === 'ollama';
-  const apikeyInput = document.getElementById('s-apikey');
-  document.getElementById('s-apikey-label').textContent = isOllama ? 'Base URL (Ollama API)' : 'API Key';
-  apikeyInput.type = isOllama ? 'url' : 'password';
-  apikeyInput.placeholder = isOllama ? 'http://localhost:11434' : 'Paste your API key';
-  document.getElementById('s-apikey-help').textContent = isOllama 
-    ? 'The base URL where your local Ollama is running.' 
-    : 'Stored locally in your browser. Never sent to our servers.';
-}
+    // Handle dynamic labels for Ollama
+    function updateProviderFields() {
+      const provider = document.getElementById('s-provider').value;
+      const isOllama = provider === 'ollama';
+      const apikeyInput = document.getElementById('s-apikey');
+      document.getElementById('s-apikey-label').textContent = isOllama ? 'Base URL (Ollama API)' : 'API Key';
+      apikeyInput.type = isOllama ? 'url' : 'password';
+      apikeyInput.placeholder = isOllama ? 'http://localhost:11434' : 'Paste your API key';
+      document.getElementById('s-apikey-help').textContent = isOllama
+        ? 'The base URL where your local Ollama is running.'
+        : 'Stored locally and proxied via our backend for secure AI orchestration.';
+    }
 
-document.getElementById('s-provider').addEventListener('change', updateProviderFields);
-updateProviderFields();
+    document.getElementById('s-provider').addEventListener('change', updateProviderFields);
+    updateProviderFields();
 
-if (user) {
-  document.getElementById('account-info').innerHTML = `
+    if (user) {
+      document.getElementById('account-info').innerHTML = `
     <p><strong>Name:</strong> ${user.name}</p>
     <p><strong>Email:</strong> ${user.email}</p>
     <p><strong>Plan:</strong> ${user.plan}</p>
     <p><strong>Credits:</strong> ${user.creditsRemaining} minutes</p>
   `;
-}
-function saveAllSettings() {
-  const s = IsynqStorage.get('user_settings') || {};
-  s.preferredLLM = document.getElementById('s-provider').value;
-  s.apiKey = document.getElementById('s-apikey').value;
-  s.model = document.getElementById('s-model').value;
-  s.responseFormat = document.getElementById('s-format').value;
-  IsynqStorage.set('user_settings', s);
-  alert('Settings saved!');
-}
-</script>
+    }
+    function saveAllSettings() {
+      const s = IsynqStorage.get('user_settings') || {};
+      s.preferredLLM = document.getElementById('s-provider').value;
+      s.apiKey = document.getElementById('s-apikey').value;
+      s.model = document.getElementById('s-model').value;
+      s.responseFormat = document.getElementById('s-format').value;
+      IsynqStorage.set('user_settings', s);
+      alert('Settings saved!');
+    }
+  </script>
 </body>
+
 </html>
-
-
-
