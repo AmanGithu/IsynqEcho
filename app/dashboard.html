@@ -127,17 +127,20 @@
   <script src="../js/storage.js"></script>
   <script src="../js/auth.js"></script>
   <script>
-    // Auth guard
-    if (!IsynqAuth.isAuthenticated()) { window.location.href = '../signin.html'; }
-
-    const user = IsynqAuth.getCurrentUser();
-    if (user) {
-      document.getElementById('user-name').textContent = user.name;
-      document.getElementById('welcome-text').textContent = `Welcome back, ${user.name.split(' ')[0]}!`;
-      document.getElementById('credits-count').textContent = user.creditsRemaining;
-    }
-
     let selectedType = '';
+
+    (async function initDashboard() {
+      if (!(await IsynqAuth.requireAuth())) return;
+
+      const user = IsynqAuth.getCurrentUser();
+      if (user) {
+        document.getElementById('user-name').textContent = user.name;
+        document.getElementById('welcome-text').textContent = `Welcome back, ${user.name.split(' ')[0]}!`;
+        document.getElementById('credits-count').textContent = user.creditsRemaining;
+      }
+
+      loadHistory();
+    })();
 
     function selectCopilot(type) {
       selectedType = type;
@@ -232,7 +235,6 @@
         list.innerHTML = '<p style="text-align:center; padding:20px; color:var(--color-danger);">Failed to load history.</p>';
       }
     }
-    loadHistory();
   </script>
 </body>
 

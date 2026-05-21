@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Authorize Isynq Desktop</title>
+  <link rel="stylesheet" href="css/design-system.css">
+  <style>
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 50%, #6366F1 100%);
+      margin: 0;
+      font-family: var(--font-family, 'Inter', system-ui, sans-serif);
+    }
+
+    .auth-card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 20px 40px #0000001a;
+      max-width: 500px;
+      width: 100%;
+      padding: 32px;
+      text-align: center;
+    }
+
+    .card-main {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .card-left,
+    .card-right {
+      width: 100%;
+    }
+
+    .card-right {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .badge {
+      display: inline-block;
+      background: #EEF2FF;
+      color: #4F46E5;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      padding: 5px 10px;
+      border-radius: 999px;
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      font-size: 1.35rem;
+      color: #0F172A;
+      margin: 0 0 6px;
+      line-height: 1.25;
+    }
+
+    .subtitle {
+      color: #64748B;
+      font-size: 0.9rem;
+      margin: 0;
+      line-height: 1.45;
+    }
+
+    .signed-in {
+      font-size: 0.88rem;
+      color: #475569;
+      margin: 0;
+    }
+
+    .signed-in strong {
+      color: #0F172A;
+      font-weight: 600;
+    }
+
+    .actions {
+      display: flex;
+      gap: 12px;
+      width: 100%;
+      max-width: 360px;
+      justify-content: center;
+    }
+
+    .actions button {
+      flex: 1;
+      padding: 11px 18px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      white-space: nowrap;
+    }
+
+    .btn-cancel {
+      background: #F1F5F9;
+      color: #334155;
+    }
+
+    .btn-cancel:hover {
+      background: #E2E8F0;
+    }
+
+    .btn-authorize {
+      background: #3B82F6;
+      color: #fff;
+    }
+
+    .btn-authorize:hover {
+      background: #2563EB;
+    }
+
+    .btn-authorize:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .footer {
+      font-size: 0.72rem;
+      color: #94A3B8;
+      line-height: 1.5;
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid #E2E8F0;
+      text-align: center;
+    }
+
+    .footer a {
+      color: #3B82F6;
+      text-decoration: none;
+    }
+
+    .loading {
+      color: #64748B;
+      font-size: 0.9rem;
+      padding: 8px 0;
+    }
+
+    .error-box {
+      background: #FEE2E2;
+      color: #991B1B;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      margin-bottom: 12px;
+      display: none;
+    }
+
+    #authorize-panel {
+      display: none;
+      width: 100%;
+    }
+
+    #authorize-panel .card-main {
+      display: flex;
+    }
+
+  </style>
+</head>
+
+<body>
+  <div class="auth-card">
+    <div id="error-box" class="error-box"></div>
+    <div id="loading" class="loading">Checking your session…</div>
+
+    <div id="authorize-panel">
+      <div class="card-main">
+        <div class="card-left">
+          <div class="badge">ISYNQ DESKTOP</div>
+          <h1>Connect your Isynq account</h1>
+          <p class="subtitle">Give the desktop app permission to access your account.</p>
+        </div>
+        <div class="card-right">
+          <p class="signed-in">Signed in as<strong id="user-email">—</strong></p>
+          <div class="actions">
+            <button type="button" class="btn-cancel" id="btn-cancel">Cancel</button>
+            <button type="button" class="btn-authorize" id="btn-authorize">Authorize</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="footer">
+      You're authorizing the official Isynq desktop app to sign in with your account.
+      Questions? Email <a href="mailto:support@isynq.ai">support@isynq.ai</a>.
+    </p>
+  </div>
+
+  <script src="js/storage.js?v=2"></script>
+  <script src="js/auth.js?v=2"></script>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const redirectUri = params.get('redirect_uri');
+    const state = params.get('state');
+
+    function showError(msg) {
+      const box = document.getElementById('error-box');
+      box.textContent = msg;
+      box.style.display = 'block';
+    }
+
+    function hideLoading() {
+      document.getElementById('loading').style.display = 'none';
+    }
+
+    function buildReturnUrl() {
+      return `desktop-authorize.html${window.location.search}`;
+    }
+
+    function redirectToSignIn() {
+      const returnUrl = encodeURIComponent(buildReturnUrl());
+      window.location.href = `signin.html?returnUrl=${returnUrl}&desktop=1`;
+    }
+
+    function closeDesktopWithError(message) {
+      if (redirectUri) {
+        const url = new URL(redirectUri);
+        url.searchParams.set('error', message);
+        if (state) url.searchParams.set('state', state);
+        window.location.href = url.toString();
+      } else {
+        showError(message);
+      }
+    }
+
+    async function sendCodeToDesktop(code) {
+      if (!redirectUri) {
+        showError('Missing redirect URI. Open this page from the Isynq desktop app.');
+        return;
+      }
+      const url = new URL(redirectUri);
+      url.searchParams.set('code', code);
+      if (state) url.searchParams.set('state', state);
+      window.location.href = url.toString();
+    }
+
+    /** Refresh session via /auth/me without relying on a cached auth.js */
+    async function refreshSessionSoft() {
+      if (!IsynqAuth.isAuthenticated()) return false;
+      try {
+        const data = await IsynqStorage.fetchAPI('/auth/me', { skipAuthRedirect: true });
+        if (data?.user) {
+          IsynqStorage.syncUserFromApi(data.user);
+          return true;
+        }
+        return false;
+      } catch {
+        return false;
+      }
+    }
+
+    function showAuthorizePanel(user) {
+      hideLoading();
+      document.getElementById('authorize-panel').style.display = 'block';
+      const emailEl = document.getElementById('user-email');
+      emailEl.textContent = user?.email || user?.name || 'your account';
+    }
+
+    function wireAuthorizeActions() {
+      document.getElementById('btn-cancel').addEventListener('click', () => {
+        closeDesktopWithError('cancelled');
+      });
+
+      document.getElementById('btn-authorize').addEventListener('click', async () => {
+        const btn = document.getElementById('btn-authorize');
+        btn.disabled = true;
+        btn.textContent = 'Authorizing…';
+        document.getElementById('error-box').style.display = 'none';
+        try {
+          const data = await IsynqStorage.fetchAPI('/auth/desktop/authorize', {
+            method: 'POST',
+            skipAuthRedirect: true
+          });
+          if (!data?.code) {
+            throw new Error('No authorization code returned');
+          }
+          await sendCodeToDesktop(data.code);
+        } catch (e) {
+          btn.disabled = false;
+          btn.textContent = 'Authorize';
+          showError(e.message || 'Authorization failed');
+        }
+      });
+    }
+
+    async function init() {
+      try {
+        if (!redirectUri) {
+          hideLoading();
+          showError('Invalid link. Please start sign-in from the Isynq desktop app.');
+          return;
+        }
+
+        if (!IsynqAuth.isAuthenticated()) {
+          hideLoading();
+          redirectToSignIn();
+          return;
+        }
+
+        const cachedUser = IsynqAuth.getCurrentUser();
+        showAuthorizePanel(cachedUser);
+        wireAuthorizeActions();
+
+        const valid = await refreshSessionSoft();
+        if (!valid) {
+          IsynqAuth.logout();
+          document.getElementById('authorize-panel').style.display = 'none';
+          redirectToSignIn();
+          return;
+        }
+
+        const user = IsynqAuth.getCurrentUser();
+        document.getElementById('user-email').textContent =
+          user?.email || user?.name || 'your account';
+      } catch (e) {
+        hideLoading();
+        showError(e.message || 'Something went wrong. Please try again from the desktop app.');
+        console.error('desktop-authorize init error:', e);
+      }
+    }
+
+    init();
+  </script>
+</body>
+
+</html>

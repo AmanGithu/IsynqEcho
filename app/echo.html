@@ -145,14 +145,20 @@
   <script src="../js/llm-engine.js"></script>
   <script src="../js/transcription.js"></script>
   <script>
-    // Auth guard
-    if (!IsynqAuth.isAuthenticated()) { window.location.href = '../signin.html'; }
-
     // State
     let isRecording = false;
     let questionCount = 0;
     let transcriptCount = 0;
-    const session = IsynqStorage.get('copilot_session') || {};
+    let session = IsynqStorage.get('copilot_session') || {};
+
+    (async function initEcho() {
+      if (!(await IsynqAuth.requireAuth())) return;
+
+      const backendSession = await IsynqStorage.startMeeting(session.type || 'general');
+      if (backendSession?.id) {
+        session = { ...session, backendSessionId: backendSession.id };
+        IsynqStorage.set('copilot_session', session);
+      }
 
     // Initialize LLM with saved settings
     const settings = IsynqStorage.get('user_settings') || {};
@@ -217,7 +223,7 @@
       document.getElementById('settings-modal').classList.remove('active');
     }
 
-    function saveSettings() {
+    async function saveSettings() {
       const provider = document.getElementById('setting-provider').value;
       const apiKey = document.getElementById('setting-apikey').value;
       const model = document.getElementById('setting-model').value;
@@ -228,7 +234,7 @@
       s.preferredLLM = provider;
       s.apiKey = apiKey;
       s.model = model;
-      IsynqStorage.set('user_settings', s);
+      await IsynqStorage.saveUserSettings(s);
 
       closeSettings();
       showNotification('Settings saved!');
@@ -465,8 +471,9 @@
       try {
         await IsynqStorage.saveMeeting({
           type: session.type || 'general',
+          backendSessionId: session.backendSessionId,
           date: new Date().toISOString(),
-          duration: Math.ceil((usage?.duration || 0) / 60),
+          duration: usage?.duration || 0,
           questionsAnswered: questionCount,
           transcript: TranscriptionService.getFullTranscript()
         });
@@ -497,6 +504,7 @@
     window.addEventListener('beforeunload', (e) => {
       if (isRecording) { e.preventDefault(); e.returnValue = ''; }
     });
+    })();
   </script>
 </body>
 

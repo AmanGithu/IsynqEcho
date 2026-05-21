@@ -5,6 +5,17 @@
 const IsynqStorage = {
   API_BASE_URL: 'http://localhost:5000/api',
 
+  apiUnreachableMessage() {
+    return `Cannot reach API at ${this.API_BASE_URL.replace(/\/api$/, '')} — start the backend.`;
+  },
+
+  wrapFetchError(err) {
+    if (err instanceof TypeError || err.message === 'Failed to fetch') {
+      return new Error(this.apiUnreachableMessage());
+    }
+    return err;
+  },
+
   // API helper
   async fetchAPI(endpoint, options = {}) {
     const session = this.get('session');
@@ -17,29 +28,69 @@ const IsynqStorage = {
       headers['Authorization'] = `Bearer ${session.token}`;
     }
 
+    let response;
     try {
-      const response = await fetch(`${this.API_BASE_URL}${endpoint}`, {
+      response = await fetch(`${this.API_BASE_URL}${endpoint}`, {
         ...options,
         headers
       });
-
-      if (response.status === 401) {
-        // Token expired or invalid
-        this.remove('session');
-        this.remove('current_user');
-        if (!window.location.pathname.includes('signin.html')) {
-          window.location.href = '/signin.html';
-        }
-        throw new Error('Session expired');
-      }
-
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || 'API Error');
-      return data;
     } catch (err) {
       console.error('Fetch error:', err);
-      throw err;
+      throw this.wrapFetchError(err);
     }
+
+    if (response.status === 401 || response.status === 403) {
+      this.remove('session');
+      this.remove('current_user');
+      const path = window.location.pathname;
+      const isAuthPage = path.includes('signin.html') ||
+        path.includes('signup.html') ||
+        path.includes('desktop-authorize.html');
+      if (!options.skipAuthRedirect && !isAuthPage) {
+        window.location.href = 'signin.html';
+      }
+      throw new Error('Session expired');
+    }
+
+    if (response.status === 204) {
+      return null;
+    }
+
+    let data;
+    try {
+      data = await response.json();
+    } catch {
+      if (!response.ok) throw new Error('API Error');
+      return null;
+    }
+
+    if (!response.ok) throw new Error(data.message || 'API Error');
+    return data;
+  },
+
+  syncUserFromApi(user) {
+    if (!user) return;
+    IsynqStorage.set('current_user', {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      plan: user.plan || 'free',
+      creditsRemaining: user.creditsRemaining ?? 5,
+      avatar: user.avatar
+    });
+    if (user.settings && typeof user.settings === 'object') {
+      const local = IsynqStorage.get('user_settings') || {};
+      IsynqStorage.set('user_settings', { ...local, ...user.settings });
+    }
+  },
+
+  async patchUserMe(body) {
+    const data = await this.fetchAPI('/users/me', {
+      method: 'PATCH',
+      body: JSON.stringify(body)
+    });
+    if (data?.user) this.syncUserFromApi(data.user);
+    return data;
   },
 
   // localStorage helpers
@@ -85,16 +136,80 @@ const IsynqStorage = {
   },
 
   async addDocument(doc) {
+    const session = this.get('session');
+    if (session?.token) {
+      try {
+        const created = await this.fetchAPI('/context-docs', {
+          method: 'POST',
+          body: JSON.stringify({
+            type: doc.type || 'notes',
+            content: doc.content || doc.text || '',
+            fileName: doc.fileName || doc.name
+          })
+        });
+        const db = await this.openDB();
+        await new Promise((resolve, reject) => {
+          const tx = db.transaction('documents', 'readwrite');
+          tx.objectStore('documents').put({
+            ...doc,
+            id: created.id,
+            backendId: created.id,
+            uploadedAt: new Date().toISOString()
+          });
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+        });
+        return;
+      } catch (err) {
+        console.warn('Backend document sync failed, saving locally:', err);
+      }
+    }
+
     const db = await this.openDB();
     return new Promise((resolve, reject) => {
       const tx = db.transaction('documents', 'readwrite');
-      tx.objectStore('documents').put({ ...doc, id: doc.id || crypto.randomUUID(), uploadedAt: new Date().toISOString() });
+      tx.objectStore('documents').put({
+        ...doc,
+        id: doc.id || crypto.randomUUID(),
+        uploadedAt: new Date().toISOString()
+      });
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error);
     });
   },
 
   async getDocuments() {
+    const session = this.get('session');
+    if (session?.token) {
+      try {
+        const docs = await this.fetchAPI('/context-docs');
+        const db = await this.openDB();
+        const tx = db.transaction('documents', 'readwrite');
+        const store = tx.objectStore('documents');
+        docs.forEach(d => store.put({
+          id: d.id,
+          backendId: d.id,
+          type: d.type,
+          content: d.content,
+          text: d.content,
+          fileName: d.fileName,
+          name: d.fileName,
+          uploadedAt: d.createdAt
+        }));
+        return docs.map(d => ({
+          id: d.id,
+          type: d.type,
+          content: d.content,
+          text: d.content,
+          fileName: d.fileName,
+          name: d.fileName,
+          uploadedAt: d.createdAt
+        }));
+      } catch (err) {
+        console.warn('Backend documents fetch failed, using local:', err);
+      }
+    }
+
     const db = await this.openDB();
     return new Promise((resolve, reject) => {
       const tx = db.transaction('documents', 'readonly');
@@ -105,6 +220,15 @@ const IsynqStorage = {
   },
 
   async deleteDocument(id) {
+    const session = this.get('session');
+    if (session?.token) {
+      try {
+        await this.fetchAPI(`/context-docs/${id}`, { method: 'DELETE' });
+      } catch (err) {
+        console.warn('Backend document delete failed:', err);
+      }
+    }
+
     const db = await this.openDB();
     return new Promise((resolve, reject) => {
       const tx = db.transaction('documents', 'readwrite');
@@ -114,12 +238,27 @@ const IsynqStorage = {
     });
   },
 
+  async startMeeting(type = 'general') {
+    const session = this.get('session');
+    if (!session?.token) return null;
+
+    try {
+      const backendSession = await this.fetchAPI('/sessions/start', {
+        method: 'POST',
+        body: JSON.stringify({ type })
+      });
+      return backendSession;
+    } catch (err) {
+      console.warn('Backend session start failed:', err);
+      return null;
+    }
+  },
+
   async saveMeeting(meeting) {
-    // 1. Save to local IndexedDB first (Offline-first)
     const db = await this.openDB();
     const localId = meeting.id || crypto.randomUUID();
     const meetingWithId = { ...meeting, id: localId };
-    
+
     await new Promise((resolve, reject) => {
       const tx = db.transaction('meetings', 'readwrite');
       tx.objectStore('meetings').put(meetingWithId);
@@ -127,39 +266,53 @@ const IsynqStorage = {
       tx.onerror = () => reject(tx.error);
     });
 
-    // 2. Try to sync with backend if authenticated
-    const session = this.get('session');
-    if (session?.token) {
-      try {
-        await this.fetchAPI('/sessions', {
+    const authSession = this.get('session');
+    if (!authSession?.token) return meetingWithId;
+
+    try {
+      let backendSessionId = meeting.backendSessionId;
+
+      if (!backendSessionId) {
+        const started = await this.fetchAPI('/sessions/start', {
+          method: 'POST',
+          body: JSON.stringify({ type: meeting.type || 'general' })
+        });
+        backendSessionId = started.id;
+      }
+
+      if (backendSessionId) {
+        const durationSeconds = meeting.duration
+          ? (typeof meeting.duration === 'number' && meeting.duration < 10000
+              ? meeting.duration * 60
+              : meeting.duration)
+          : undefined;
+
+        await this.fetchAPI(`/sessions/${backendSessionId}/end`, {
           method: 'POST',
           body: JSON.stringify({
-            id: localId,
-            type: meeting.type || 'general',
-            title: meeting.title,
-            duration: meeting.duration,
-            date: meeting.date || new Date().toISOString()
+            duration: durationSeconds,
+            questionsAnswered: meeting.questionsAnswered ?? 0
           })
         });
-      } catch (err) {
-        console.warn('Backend sync failed, will remain local only for now:', err);
+        meetingWithId.backendSessionId = backendSessionId;
       }
+    } catch (err) {
+      console.warn('Backend session sync failed, will remain local only:', err);
     }
+
+    return meetingWithId;
   },
 
   async getMeetings() {
-    // Try backend first
     const session = this.get('session');
     if (session?.token) {
       try {
-        let meetings = await this.fetchAPI('/sessions');
-        // Map backend startTime to frontend date
+        let meetings = await this.fetchAPI('/sessions/history');
         meetings = meetings.map(m => ({
           ...m,
           date: m.date || m.startTime || new Date().toISOString()
         }));
-        
-        // Cache in local IndexedDB
+
         const db = await this.openDB();
         const tx = db.transaction('meetings', 'readwrite');
         const store = tx.objectStore('meetings');
@@ -170,7 +323,6 @@ const IsynqStorage = {
       }
     }
 
-    // Fallback to local IndexedDB
     const db = await this.openDB();
     return new Promise((resolve, reject) => {
       const tx = db.transaction('meetings', 'readonly');
@@ -178,6 +330,28 @@ const IsynqStorage = {
       req.onsuccess = () => resolve(req.result.sort((a, b) => new Date(b.date) - new Date(a.date)));
       req.onerror = () => reject(req.error);
     });
+  },
+
+  async saveUserSettings(settings) {
+    this.set('user_settings', settings);
+    const session = this.get('session');
+    if (session?.token) {
+      try {
+        await this.patchUserMe({ settings });
+      } catch (err) {
+        console.warn('Failed to sync settings to backend:', err);
+      }
+    }
+  },
+
+  async syncCreditsToBackend(creditsRemaining) {
+    const session = this.get('session');
+    if (!session?.token) return;
+    try {
+      await this.patchUserMe({ creditsRemaining });
+    } catch (err) {
+      console.warn('Failed to sync credits to backend:', err);
+    }
   },
 
   async clearAllData() {

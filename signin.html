@@ -72,14 +72,36 @@
   <script src="js/storage.js"></script>
   <script src="js/auth.js"></script>
   <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const returnUrl = urlParams.get('returnUrl');
+    const isDesktopFlow = urlParams.get('desktop') === '1';
+
+    if (isDesktopFlow && returnUrl) {
+      const header = document.querySelector('.auth-header p');
+      if (header) header.textContent = 'Sign in to connect the Isynq desktop app.';
+      const signupLink = document.querySelector('.auth-footer a');
+      if (signupLink) {
+        signupLink.href = `signup.html?returnUrl=${encodeURIComponent(returnUrl)}&desktop=1`;
+      }
+    }
+
+    function afterAuthRedirect() {
+      if (returnUrl) {
+        // returnUrl from URLSearchParams is already decoded once
+        window.location.href = returnUrl;
+        return;
+      }
+      window.location.href = 'app/dashboard.html';
+    }
+
     function togglePassword(id) { const i = document.getElementById(id); i.type = i.type === 'password' ? 'text' : 'password'; }
     function showToast(msg, type = 'success') { const t = document.createElement('div'); t.className = `auth-toast ${type}`; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.classList.add('show'), 50); setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, 3000); }
 
     document.getElementById('google-signin').addEventListener('click', () => {
-      try { IsynqAuth.socialLogin('google'); showToast('Welcome back!'); setTimeout(() => window.location.href = 'app/dashboard.html', 800); } catch (e) { showToast(e.message, 'error'); }
+      showToast('Google sign-in is coming soon. Use email and password.', 'error');
     });
     document.getElementById('github-signin').addEventListener('click', () => {
-      try { IsynqAuth.socialLogin('github'); showToast('Welcome back!'); setTimeout(() => window.location.href = 'app/dashboard.html', 800); } catch (e) { showToast(e.message, 'error'); }
+      showToast('GitHub sign-in is coming soon. Use email and password.', 'error');
     });
     document.getElementById('signin-form').addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -95,7 +117,7 @@
       try { 
         await IsynqAuth.login({ email, password }); 
         showToast('Welcome back!'); 
-        setTimeout(() => window.location.href = 'app/dashboard.html', 800); 
+        setTimeout(() => afterAuthRedirect(), 800); 
       }
       catch (e) { 
         showToast(e.message, 'error'); 
@@ -103,7 +125,10 @@
         btn.classList.remove('loading');
       }
     });
-    if (IsynqAuth.isAuthenticated()) { window.location.href = 'app/dashboard.html'; }
+    if (IsynqAuth.isAuthenticated()) {
+      if (returnUrl) window.location.href = returnUrl;
+      else window.location.href = 'app/dashboard.html';
+    }
   </script>
 </body>
 

@@ -19,6 +19,7 @@ const CreditsManager = {
     if (user) {
       user.creditsRemaining = Math.max(0, minutes);
       IsynqStorage.set('current_user', user);
+      IsynqStorage.syncCreditsToBackend(user.creditsRemaining);
     }
   },
 

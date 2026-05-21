@@ -95,6 +95,27 @@
   <script src="js/storage.js"></script>
   <script src="js/auth.js"></script>
   <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const returnUrl = urlParams.get('returnUrl');
+    const isDesktopFlow = urlParams.get('desktop') === '1';
+
+    if (isDesktopFlow && returnUrl) {
+      const header = document.querySelector('.auth-header p');
+      if (header) header.textContent = 'Create an account to connect the Isynq desktop app.';
+      const signinLink = document.querySelector('.auth-footer a');
+      if (signinLink) {
+        signinLink.href = `signin.html?returnUrl=${encodeURIComponent(returnUrl)}&desktop=1`;
+      }
+    }
+
+    function afterAuthRedirect() {
+      if (returnUrl) {
+        window.location.href = returnUrl;
+        return;
+      }
+      window.location.href = 'app/dashboard.html';
+    }
+
     function togglePassword(id) {
       const input = document.getElementById(id);
       input.type = input.type === 'password' ? 'text' : 'password';
@@ -109,22 +130,13 @@
       setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, 3000);
     }
 
-    // Google Sign-up
+    // Google / GitHub — OAuth not implemented yet
     document.getElementById('google-signup').addEventListener('click', () => {
-      try {
-        IsynqAuth.socialLogin('google');
-        showToast('Welcome! Signed up with Google.');
-        setTimeout(() => window.location.href = 'app/dashboard.html', 800);
-      } catch (e) { showToast(e.message, 'error'); }
+      showToast('Google sign-up is coming soon. Use email and password.', 'error');
     });
 
-    // GitHub Sign-up
     document.getElementById('github-signup').addEventListener('click', () => {
-      try {
-        IsynqAuth.socialLogin('github');
-        showToast('Welcome! Signed up with GitHub.');
-        setTimeout(() => window.location.href = 'app/dashboard.html', 800);
-      } catch (e) { showToast(e.message, 'error'); }
+      showToast('GitHub sign-up is coming soon. Use email and password.', 'error');
     });
 
     // Email Sign-up
@@ -152,7 +164,7 @@
       try {
         await IsynqAuth.register({ name, email, password });
         showToast('Account created successfully!');
-        setTimeout(() => window.location.href = 'app/dashboard.html', 800);
+        setTimeout(() => afterAuthRedirect(), 800);
       } catch (e) {
         showToast(e.message, 'error');
       } finally {
@@ -162,7 +174,8 @@
 
     // Redirect if already logged in
     if (IsynqAuth.isAuthenticated()) {
-      window.location.href = 'app/dashboard.html';
+      if (returnUrl) window.location.href = returnUrl;
+      else window.location.href = 'app/dashboard.html';
     }
   </script>
 </body>
