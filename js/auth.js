@@ -9,6 +9,16 @@ const IsynqAuth = {
     IsynqStorage.syncUserFromApi(user);
   },
 
+  async completeAuthExchange(code) {
+    const data = await IsynqStorage.fetchAPI('/auth/exchange', {
+      method: 'POST',
+      body: JSON.stringify({ code })
+    });
+    const { user, token } = data;
+    this._persistSession(user, token);
+    return user;
+  },
+
   async register({ name, email, password }) {
     const data = await IsynqStorage.fetchAPI('/auth/register', {
       method: 'POST',

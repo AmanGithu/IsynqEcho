@@ -11,11 +11,21 @@ const LLMEngine = {
   maxContextTokens: 6000,
 
   initialize(config = {}) {
-    this.provider = config.provider || IsynqStorage.get('user_settings')?.preferredLLM || 'openai';
-    this.apiKey = config.apiKey || IsynqStorage.get('user_settings')?.apiKey || '';
-    this.model = config.model || (this.provider === 'openai' ? 'gpt-4o-mini' : 'gemini-2.0-flash');
+    const settings = IsynqStorage.get('user_settings') || {};
+    this.provider = config.provider || settings.preferredLLM || 'openai';
+    this.apiKey = config.apiKey ?? settings.apiKey ?? '';
+    const defaultModel =
+      this.provider === 'openai' ? 'gpt-4o-mini' :
+      this.provider === 'gemini' ? 'gemini-2.0-flash' :
+      'llama3';
+    this.model = config.model || settings.model || defaultModel;
     this.conversationHistory = [];
     this.contextDocs = '';
+  },
+
+  isConfigured() {
+    if (this.provider === 'ollama') return true;
+    return !!(this.apiKey && String(this.apiKey).trim());
   },
 
   setProvider(provider, apiKey, model) {

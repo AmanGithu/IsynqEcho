@@ -44,8 +44,8 @@
             <label class="form-label" id="s-apikey-label">API Key / Base URL</label>
             <input class="form-input" type="password" id="s-apikey"
               placeholder="Paste your API key or http://localhost:11434">
-            <span style="font-size:0.8125rem;color:var(--color-text-tertiary);" id="s-apikey-help">Stored locally in
-              your browser. Never sent to our servers.</span>
+            <span style="font-size:0.8125rem;color:var(--color-text-tertiary);" id="s-apikey-help">Saved in your browser
+              and synced to your account when signed in.</span>
           </div>
           <div class="form-group">
             <label class="form-label">Model (optional override)</label>
@@ -82,6 +82,18 @@
     (async function initSettings() {
       if (!(await IsynqAuth.requireAuth())) return;
 
+    try {
+      const me = await IsynqStorage.fetchAPI('/auth/me');
+      if (me?.user?.settings) {
+        IsynqStorage.set('user_settings', {
+          ...(IsynqStorage.get('user_settings') || {}),
+          ...me.user.settings
+        });
+      }
+    } catch (err) {
+      console.warn('Could not load settings from account:', err);
+    }
+
     const user = IsynqAuth.getCurrentUser();
     const settings = IsynqStorage.get('user_settings') || {};
     document.getElementById('s-provider').value = settings.preferredLLM || 'openai';
@@ -113,15 +125,25 @@
     <p><strong>Credits:</strong> ${user.creditsRemaining} minutes</p>
   `;
     }
-    async function saveAllSettings() {
-      const s = IsynqStorage.get('user_settings') || {};
-      s.preferredLLM = document.getElementById('s-provider').value;
-      s.apiKey = document.getElementById('s-apikey').value;
-      s.model = document.getElementById('s-model').value;
-      s.responseFormat = document.getElementById('s-format').value;
-      await IsynqStorage.saveUserSettings(s);
-      alert('Settings saved!');
-    }
+    window.saveAllSettings = async function saveAllSettings() {
+      const btn = document.querySelector('button.btn-primary');
+      if (btn) btn.disabled = true;
+      try {
+        const s = IsynqStorage.get('user_settings') || {};
+        s.preferredLLM = document.getElementById('s-provider').value;
+        s.apiKey = document.getElementById('s-apikey').value.trim();
+        s.model = document.getElementById('s-model').value.trim();
+        s.responseFormat = document.getElementById('s-format').value;
+        const result = await IsynqStorage.saveUserSettings(s);
+        alert(result.synced
+          ? 'Settings saved to this device and your account.'
+          : 'Settings saved on this device. Sign in and ensure the backend is running to sync to your account.');
+      } catch (e) {
+        alert(e.message || 'Could not save settings');
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    };
     })();
   </script>
 </body>

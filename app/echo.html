@@ -56,7 +56,7 @@
               <line x1="8" y1="23" x2="16" y2="23" />
             </svg>
             <p>Click the microphone button below to start listening</p>
-            <p style="font-size:0.75rem;">Isynq will detect questions automatically</p>
+            <p style="font-size:0.75rem;">Questions like “What is…” or ending with ? trigger AI. Or use ✏️ to type any question.</p>
           </div>
         </div>
         <div class="copilot-controls">
@@ -97,7 +97,7 @@
     <!-- Manual Question Input (hidden by default) -->
     <div id="manual-input-bar"
       style="display:none;position:fixed;bottom:0;left:0;right:0;background:rgba(15,23,42,0.98);padding:16px 20px;border-top:1px solid rgba(255,255,255,0.1);z-index:50;">
-      <form style="display:flex;gap:12px;max-width:800px;margin:0 auto;" onsubmit="submitManualQuestion(event)">
+      <form id="manual-question-form" style="display:flex;gap:12px;max-width:800px;margin:0 auto;">
         <input type="text" id="manual-question" class="form-input" placeholder="Type a question to get an AI answer..."
           style="flex:1;background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.15);color:#fff;">
         <button type="submit" class="btn btn-primary btn-sm">Ask AI</button>
@@ -154,19 +154,40 @@
     (async function initEcho() {
       if (!(await IsynqAuth.requireAuth())) return;
 
-      const backendSession = await IsynqStorage.startMeeting(session.type || 'general');
-      if (backendSession?.id) {
-        session = { ...session, backendSessionId: backendSession.id };
-        IsynqStorage.set('copilot_session', session);
+      try {
+        const me = await IsynqStorage.fetchAPI('/auth/me');
+        if (me?.user?.settings) {
+          IsynqStorage.set('user_settings', {
+            ...(IsynqStorage.get('user_settings') || {}),
+            ...me.user.settings
+          });
+        }
+      } catch (err) {
+        console.warn('Could not load account settings:', err);
       }
 
-    // Initialize LLM with saved settings
+      try {
+        const backendSession = await IsynqStorage.startMeeting(session.type || 'general');
+        if (backendSession?.id) {
+          session = { ...session, backendSessionId: backendSession.id };
+          IsynqStorage.set('copilot_session', session);
+        }
+      } catch (err) {
+        showNotification(err.message || 'Could not start session', 'error');
+        setTimeout(() => { window.location.href = 'dashboard.html'; }, 2500);
+        return;
+      }
+
     const settings = IsynqStorage.get('user_settings') || {};
     LLMEngine.initialize({
       provider: settings.preferredLLM || 'openai',
       apiKey: settings.apiKey || '',
       model: settings.model || undefined
     });
+
+    if (!LLMEngine.isConfigured() && LLMEngine.provider !== 'ollama') {
+      showNotification('Add your API key via ⚙️ before asking questions (Settings page works too).', 'error');
+    }
 
     // Set context from session documents
     if (session.documents) {
@@ -198,22 +219,6 @@
     document.getElementById('setting-provider').addEventListener('change', updateCopilotProviderFields);
     updateCopilotProviderFields();
 
-    // Handle dynamic labels for Ollama
-    function updateCopilotProviderFields() {
-      const provider = document.getElementById('setting-provider').value;
-      const isOllama = provider === 'ollama';
-      const apikeyInput = document.getElementById('setting-apikey');
-      document.getElementById('setting-apikey-label').textContent = isOllama ? 'Base URL (Ollama API)' : 'API Key';
-      apikeyInput.type = isOllama ? 'url' : 'password';
-      apikeyInput.placeholder = isOllama ? 'http://localhost:11434' : 'Paste your API key here';
-      document.getElementById('setting-apikey-help').textContent = isOllama
-        ? 'Local URL where your Ollama instance runs.'
-        : 'Your key is stored locally and never sent to our servers.';
-    }
-
-    document.getElementById('setting-provider').addEventListener('change', updateCopilotProviderFields);
-    updateCopilotProviderFields();
-
     // Settings modal
     document.getElementById('settings-btn').addEventListener('click', () => {
       document.getElementById('settings-modal').classList.add('active');
@@ -223,10 +228,12 @@
       document.getElementById('settings-modal').classList.remove('active');
     }
 
-    async function saveSettings() {
+    window.closeSettings = closeSettings;
+
+    window.saveSettings = async function saveSettings() {
       const provider = document.getElementById('setting-provider').value;
-      const apiKey = document.getElementById('setting-apikey').value;
-      const model = document.getElementById('setting-model').value;
+      const apiKey = document.getElementById('setting-apikey').value.trim();
+      const model = document.getElementById('setting-model').value.trim();
 
       LLMEngine.setProvider(provider, apiKey, model || undefined);
 
@@ -234,11 +241,13 @@
       s.preferredLLM = provider;
       s.apiKey = apiKey;
       s.model = model;
-      await IsynqStorage.saveUserSettings(s);
+      const result = await IsynqStorage.saveUserSettings(s);
 
       closeSettings();
-      showNotification('Settings saved!');
-    }
+      showNotification(result.synced
+        ? 'Settings saved to this device and your account.'
+        : 'Settings saved on this device.');
+    };
 
     // Initialize Transcription
     TranscriptionService.initialize();
@@ -252,27 +261,36 @@
       addTranscriptEntry(entry);
     });
 
-    // Handle question detection
-    TranscriptionService.onQuestionDetected(async (entry) => {
+    async function askEchoQuestion(questionText) {
+      if (!questionText?.trim()) return;
+
+      if (!LLMEngine.isConfigured() && LLMEngine.provider !== 'ollama') {
+        showNotification('Set your API key in ⚙️ settings first.', 'error');
+        addResponseCard(questionText, '⚠️ No API key configured. Open ⚙️ and save your OpenAI or Gemini key.', 'short', true);
+        return;
+      }
+
       questionCount++;
       document.getElementById('question-count').textContent = `${questionCount} questions`;
-
-      // Show typing indicator
       showTypingIndicator();
 
-      // Get AI response
       const format = document.getElementById('format-select').value;
       try {
-        const result = await LLMEngine.sendQuery(entry.text, format);
+        const result = await LLMEngine.sendQuery(questionText.trim(), format);
         removeTypingIndicator();
-        addResponseCard(entry.text, result.answer, format, result.error);
-        LLMEngine.addToHistory('interviewer', entry.text);
-        LLMEngine.addToHistory('assistant', result.answer);
+        addResponseCard(questionText, result.answer, format, result.error);
+        if (!result.error) {
+          LLMEngine.addToHistory('interviewer', questionText);
+          LLMEngine.addToHistory('assistant', result.answer);
+        }
       } catch (err) {
         removeTypingIndicator();
-        addResponseCard(entry.text, `Error: ${err.message}`, format, true);
+        addResponseCard(questionText, `Error: ${err.message}`, format, true);
       }
-    });
+    }
+
+    // Voice: only lines detected as questions (e.g. "What is...", ends with ?)
+    TranscriptionService.onQuestionDetected((entry) => askEchoQuestion(entry.text));
 
     // Status changes
     TranscriptionService.onStatusChange((status) => {
@@ -424,32 +442,21 @@
       document.getElementById('manual-input-bar').style.display = 'none';
     }
 
-    async function submitManualQuestion(e) {
+    window.submitManualQuestion = async function submitManualQuestion(e) {
       e.preventDefault();
       const input = document.getElementById('manual-question');
       const question = input.value.trim();
       if (!question) return;
 
-      // Add to transcript
       addTranscriptEntry({ text: question, speaker: 'manual', isQuestion: true, timestamp: Date.now() });
-
       input.value = '';
       hideManualInput();
+      await askEchoQuestion(question);
+    };
 
-      questionCount++;
-      document.getElementById('question-count').textContent = `${questionCount} questions`;
-      showTypingIndicator();
-
-      const format = document.getElementById('format-select').value;
-      try {
-        const result = await LLMEngine.sendQuery(question, format);
-        removeTypingIndicator();
-        addResponseCard(question, result.answer, format, result.error);
-      } catch (err) {
-        removeTypingIndicator();
-        addResponseCard(question, `Error: ${err.message}`, format, true);
-      }
-    }
+    document.getElementById('manual-question-form').addEventListener('submit', (e) => {
+      window.submitManualQuestion(e);
+    });
 
     // Clear transcript
     function clearTranscript() {
@@ -469,7 +476,7 @@
 
       // Save meeting to history
       try {
-        await IsynqStorage.saveMeeting({
+        const saveResult = await IsynqStorage.saveMeeting({
           type: session.type || 'general',
           backendSessionId: session.backendSessionId,
           date: new Date().toISOString(),
@@ -477,6 +484,9 @@
           questionsAnswered: questionCount,
           transcript: TranscriptionService.getFullTranscript()
         });
+        if (saveResult?.user) {
+          CreditsManager.applyUserFromServer(saveResult.user);
+        }
       } catch (e) { console.log('Save error:', e); }
 
       window.location.href = 'dashboard.html';
@@ -504,6 +514,12 @@
     window.addEventListener('beforeunload', (e) => {
       if (isRecording) { e.preventDefault(); e.returnValue = ''; }
     });
+
+    window.endSession = endSession;
+    window.clearTranscript = clearTranscript;
+    window.toggleMic = toggleMic;
+    window.showManualInput = showManualInput;
+    window.hideManualInput = hideManualInput;
     })();
   </script>
 </body>

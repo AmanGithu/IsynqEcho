@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Signing in — Isynq</title>
+  <link rel="stylesheet" href="css/design-system.css">
+  <style>
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 50%, #6366F1 100%);
+      margin: 0;
+      font-family: var(--font-family, 'Inter', system-ui, sans-serif);
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 20px 40px #0000001a;
+      max-width: 500px;
+      width: 100%;
+      padding: 32px;
+      text-align: center;
+    }
+
+    p {
+      color: #64748B;
+    }
+
+    .error {
+      color: #991B1B;
+      background: #FEE2E2;
+      padding: 12px;
+      border-radius: 8px;
+      margin-top: 12px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="card">
+    <h1>Signing you in…</h1>
+    <p id="status">Completing authentication…</p>
+    <p id="error" class="error" style="display:none;"></p>
+  </div>
+
+  <script src="js/storage.js?v=3"></script>
+  <script src="js/auth.js?v=3"></script>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    const returnUrl = params.get('returnUrl') || '/app/dashboard.html';
+    const errorEl = document.getElementById('error');
+    const statusEl = document.getElementById('status');
+
+    function fail(msg) {
+      statusEl.textContent = 'Sign-in failed';
+      errorEl.textContent = msg;
+      errorEl.style.display = 'block';
+    }
+
+    (async function () {
+      if (!code) {
+        fail('Missing authorization code.');
+        return;
+      }
+      try {
+        await IsynqAuth.completeAuthExchange(code);
+        statusEl.textContent = 'Success! Redirecting…';
+        setTimeout(() => {
+          window.location.href = returnUrl.startsWith('/') ? returnUrl : '/app/dashboard.html';
+        }, 400);
+      } catch (e) {
+        fail(e.message || 'Could not complete sign-in');
+      }
+    })();
+  </script>
+</body>
+
+</html>

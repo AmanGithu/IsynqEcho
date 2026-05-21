@@ -3,7 +3,9 @@
    ============================================ */
 
 const IsynqStorage = {
-  API_BASE_URL: 'http://localhost:5000/api',
+  API_BASE_URL:
+    (typeof window !== 'undefined' && window.ISYNQ_CONFIG?.API_BASE_URL) ||
+    'http://localhost:5000/api',
 
   apiUnreachableMessage() {
     return `Cannot reach API at ${this.API_BASE_URL.replace(/\/api$/, '')} — start the backend.`;
@@ -287,7 +289,7 @@ const IsynqStorage = {
               : meeting.duration)
           : undefined;
 
-        await this.fetchAPI(`/sessions/${backendSessionId}/end`, {
+        const endResult = await this.fetchAPI(`/sessions/${backendSessionId}/end`, {
           method: 'POST',
           body: JSON.stringify({
             duration: durationSeconds,
@@ -295,12 +297,16 @@ const IsynqStorage = {
           })
         });
         meetingWithId.backendSessionId = backendSessionId;
+        if (endResult?.user) {
+          this.syncUserFromApi(endResult.user);
+        }
+        return { meeting: meetingWithId, user: endResult?.user };
       }
     } catch (err) {
       console.warn('Backend session sync failed, will remain local only:', err);
     }
 
-    return meetingWithId;
+    return { meeting: meetingWithId };
   },
 
   async getMeetings() {
@@ -335,12 +341,15 @@ const IsynqStorage = {
   async saveUserSettings(settings) {
     this.set('user_settings', settings);
     const session = this.get('session');
-    if (session?.token) {
-      try {
-        await this.patchUserMe({ settings });
-      } catch (err) {
-        console.warn('Failed to sync settings to backend:', err);
-      }
+    if (!session?.token) {
+      return { synced: false };
+    }
+    try {
+      await this.patchUserMe({ settings });
+      return { synced: true };
+    } catch (err) {
+      console.warn('Failed to sync settings to backend:', err);
+      return { synced: false };
     }
   },
 

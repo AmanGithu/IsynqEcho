@@ -71,10 +71,16 @@
   </div>
   <script src="js/storage.js"></script>
   <script src="js/auth.js"></script>
+  <script src="js/oauth.js"></script>
   <script>
     const urlParams = new URLSearchParams(window.location.search);
     const returnUrl = urlParams.get('returnUrl');
     const isDesktopFlow = urlParams.get('desktop') === '1';
+    const oauthError = urlParams.get('oauth_error');
+
+    if (oauthError) {
+      setTimeout(() => showToast(oauthError, 'error'), 100);
+    }
 
     if (isDesktopFlow && returnUrl) {
       const header = document.querySelector('.auth-header p');
@@ -98,10 +104,18 @@
     function showToast(msg, type = 'success') { const t = document.createElement('div'); t.className = `auth-toast ${type}`; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.classList.add('show'), 50); setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, 3000); }
 
     document.getElementById('google-signin').addEventListener('click', () => {
-      showToast('Google sign-in is coming soon. Use email and password.', 'error');
+      try {
+        IsynqOAuth.startGoogle(returnUrl || undefined);
+      } catch (e) {
+        showToast(e.message, 'error');
+      }
     });
     document.getElementById('github-signin').addEventListener('click', () => {
-      showToast('GitHub sign-in is coming soon. Use email and password.', 'error');
+      try {
+        IsynqOAuth.startGitHub(returnUrl || undefined);
+      } catch (e) {
+        showToast(e.message, 'error');
+      }
     });
     document.getElementById('signin-form').addEventListener('submit', async (e) => {
       e.preventDefault();

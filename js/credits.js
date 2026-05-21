@@ -14,13 +14,20 @@ const CreditsManager = {
     return user ? user.creditsRemaining : 0;
   },
 
-  setCredits(minutes) {
+  setCredits(minutes, syncToBackend = true) {
     const user = IsynqStorage.get('current_user');
     if (user) {
       user.creditsRemaining = Math.max(0, minutes);
       IsynqStorage.set('current_user', user);
-      IsynqStorage.syncCreditsToBackend(user.creditsRemaining);
+      if (syncToBackend) {
+        IsynqStorage.syncCreditsToBackend(user.creditsRemaining);
+      }
     }
+  },
+
+  applyUserFromServer(user) {
+    if (!user) return;
+    IsynqStorage.syncUserFromApi(user);
   },
 
   startBilling() {
