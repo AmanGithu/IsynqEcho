@@ -66,6 +66,28 @@
 .response-card .response-text strong { color: #3B82F6; font-weight: 600; }
 .response-placeholder { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: rgba(255,255,255,0.3); text-align: center; gap: 12px; }
 .copilot-controls { padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: center; gap: 16px; }
+
+.session-locked-banner {
+  background: #991B1B;
+  color: #fff;
+  text-align: center;
+  padding: 10px 16px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-bottom: 1px solid #EF4444;
+  z-index: 100;
+}
+
+.mic-btn.is-locked,
+.control-btn.is-locked {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.control-btn.is-active {
+  background: rgba(99, 102, 241, 0.25);
+  border-color: rgba(99, 102, 241, 0.5);
+}
 .mic-btn {
   width: 56px; height: 56px; border-radius: 50%; background: #3B82F6;
   display: flex; align-items: center; justify-content: center;

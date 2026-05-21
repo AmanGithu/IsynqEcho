@@ -38,6 +38,10 @@
       </div>
     </header>
 
+    <div id="session-locked-banner" class="session-locked-banner" style="display:none;" role="alert">
+      Credits depleted — session paused. Click <strong>End Session</strong> to return to the dashboard.
+    </div>
+
     <!-- Main Split Panel -->
     <div class="copilot-main">
       <!-- LEFT: Transcript -->
@@ -69,7 +73,7 @@
               <line x1="8" y1="23" x2="16" y2="23" />
             </svg>
           </button>
-          <button class="control-btn" id="manual-ask-btn" title="Ask manually" onclick="showManualInput()">✏️</button>
+          <button class="control-btn" id="manual-ask-btn" title="Ask manually" onclick="toggleManualInput()">✏️</button>
         </div>
       </div>
 
@@ -194,9 +198,58 @@
       LLMEngine.setContext(session.documents);
     }
 
-    // Initialize credits
+    // Session timer: runs for whole Echo session (voice + typed questions)
     const user = IsynqAuth.getCurrentUser();
-    document.getElementById('credits-time').textContent = CreditsManager.formatTime((user?.creditsRemaining || 5) * 60);
+    const micBtn = document.getElementById('mic-btn');
+    const manualAskBtn = document.getElementById('manual-ask-btn');
+    const lockedBanner = document.getElementById('session-locked-banner');
+    let sessionGeneration = 0;
+
+    function notifySessionLocked() {
+      showNotification('Credits depleted! Click End Session to leave.', 'error');
+    }
+
+    function updateSessionUiState() {
+      const locked = CreditsManager.isSessionLocked();
+      micBtn.classList.toggle('is-locked', locked);
+      manualAskBtn.classList.toggle('is-locked', locked);
+      micBtn.setAttribute('aria-disabled', locked ? 'true' : 'false');
+      manualAskBtn.setAttribute('aria-disabled', locked ? 'true' : 'false');
+      if (lockedBanner) lockedBanner.style.display = locked ? 'block' : 'none';
+      const manualBar = document.getElementById('manual-input-bar');
+      if (locked && manualBar) {
+        manualBar.style.display = 'none';
+        manualAskBtn.classList.remove('is-active');
+      }
+      if (locked) {
+        document.getElementById('status-text').textContent = 'Session paused';
+        document.getElementById('rec-dot').style.background = '#6B7280';
+      }
+    }
+
+    CreditsManager.onUpdate((data) => {
+      document.getElementById('credits-time').textContent = data.formatted;
+      updateSessionUiState();
+    });
+
+    CreditsManager.onDepleted(() => {
+      if (isRecording) {
+        isRecording = false;
+        TranscriptionService.stop();
+        micBtn.classList.remove('recording');
+      }
+      updateSessionUiState();
+      notifySessionLocked();
+    });
+
+    if ((user?.creditsRemaining ?? 0) <= 0) {
+      CreditsManager.lockSession();
+      document.getElementById('credits-time').textContent = '0:00';
+      showNotification('No credits remaining. End session to leave.', 'error');
+    } else {
+      CreditsManager.startBilling();
+    }
+    updateSessionUiState();
 
     // Load settings into modal
     document.getElementById('setting-provider').value = settings.preferredLLM || 'openai';
@@ -264,12 +317,18 @@
     async function askEchoQuestion(questionText) {
       if (!questionText?.trim()) return;
 
+      if (!CreditsManager.canUseSession()) {
+        notifySessionLocked();
+        return;
+      }
+
       if (!LLMEngine.isConfigured() && LLMEngine.provider !== 'ollama') {
         showNotification('Set your API key in ⚙️ settings first.', 'error');
         addResponseCard(questionText, '⚠️ No API key configured. Open ⚙️ and save your OpenAI or Gemini key.', 'short', true);
         return;
       }
 
+      const queryGeneration = sessionGeneration;
       questionCount++;
       document.getElementById('question-count').textContent = `${questionCount} questions`;
       showTypingIndicator();
@@ -278,6 +337,9 @@
       try {
         const result = await LLMEngine.sendQuery(questionText.trim(), format);
         removeTypingIndicator();
+        if (queryGeneration !== sessionGeneration) {
+          return;
+        }
         addResponseCard(questionText, result.answer, format, result.error);
         if (!result.error) {
           LLMEngine.addToHistory('interviewer', questionText);
@@ -285,12 +347,19 @@
         }
       } catch (err) {
         removeTypingIndicator();
+        if (queryGeneration !== sessionGeneration) return;
         addResponseCard(questionText, `Error: ${err.message}`, format, true);
       }
     }
 
     // Voice: only lines detected as questions (e.g. "What is...", ends with ?)
-    TranscriptionService.onQuestionDetected((entry) => askEchoQuestion(entry.text));
+    TranscriptionService.onQuestionDetected((entry) => {
+      if (!CreditsManager.canUseSession()) {
+        notifySessionLocked();
+        return;
+      }
+      askEchoQuestion(entry.text);
+    });
 
     // Status changes
     TranscriptionService.onStatusChange((status) => {
@@ -319,30 +388,26 @@
       }
     });
 
-    // Toggle microphone
+    // Toggle microphone (timer keeps running; only transcription pauses)
     function toggleMic() {
-      const micBtn = document.getElementById('mic-btn');
+      if (!CreditsManager.canUseSession()) {
+        notifySessionLocked();
+        return;
+      }
       if (!isRecording) {
         const started = TranscriptionService.start();
         if (started) {
           isRecording = true;
           micBtn.classList.add('recording');
           document.getElementById('transcript-placeholder').style.display = 'none';
-          CreditsManager.startBilling();
-          CreditsManager.onUpdate((data) => {
-            document.getElementById('credits-time').textContent = data.formatted;
-          });
-          CreditsManager.onDepleted(() => {
-            toggleMic();
-            showNotification('Credits depleted! Session paused.', 'error');
-          });
+          document.getElementById('status-text').textContent = 'Listening...';
         }
       } else {
         isRecording = false;
         TranscriptionService.stop();
         micBtn.classList.remove('recording');
-        document.getElementById('status-text').textContent = 'Paused';
-        const usage = CreditsManager.stopBilling();
+        document.getElementById('status-text').textContent =
+          CreditsManager.canUseSession() ? 'Paused' : 'Session paused';
       }
     }
 
@@ -433,24 +498,47 @@
     }
 
     // Manual question input
+    function isManualInputVisible() {
+      const bar = document.getElementById('manual-input-bar');
+      return bar && bar.style.display !== 'none';
+    }
+
     function showManualInput() {
+      if (!CreditsManager.canUseSession()) {
+        notifySessionLocked();
+        return;
+      }
       document.getElementById('manual-input-bar').style.display = 'block';
+      manualAskBtn.classList.add('is-active');
       document.getElementById('manual-question').focus();
     }
 
     function hideManualInput() {
       document.getElementById('manual-input-bar').style.display = 'none';
+      manualAskBtn.classList.remove('is-active');
+    }
+
+    function toggleManualInput() {
+      if (isManualInputVisible()) {
+        hideManualInput();
+        return;
+      }
+      showManualInput();
     }
 
     window.submitManualQuestion = async function submitManualQuestion(e) {
       e.preventDefault();
+      if (!CreditsManager.canUseSession()) {
+        notifySessionLocked();
+        return;
+      }
       const input = document.getElementById('manual-question');
       const question = input.value.trim();
       if (!question) return;
 
       addTranscriptEntry({ text: question, speaker: 'manual', isQuestion: true, timestamp: Date.now() });
       input.value = '';
-      hideManualInput();
+      input.focus();
       await askEchoQuestion(question);
     };
 
@@ -470,7 +558,12 @@
 
     // End session
     async function endSession() {
-      if (isRecording) toggleMic();
+      sessionGeneration++;
+      if (isRecording) {
+        isRecording = false;
+        TranscriptionService.stop();
+        micBtn.classList.remove('recording');
+      }
 
       const usage = CreditsManager.stopBilling();
 
@@ -515,10 +608,16 @@
       if (isRecording) { e.preventDefault(); e.returnValue = ''; }
     });
 
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && isManualInputVisible()) {
+        hideManualInput();
+      }
+    });
+
     window.endSession = endSession;
     window.clearTranscript = clearTranscript;
     window.toggleMic = toggleMic;
-    window.showManualInput = showManualInput;
+    window.toggleManualInput = toggleManualInput;
     window.hideManualInput = hideManualInput;
     })();
   </script>
