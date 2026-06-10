@@ -8,6 +8,7 @@ const CreditsManager = {
   elapsedSeconds: 0,
   remainingSeconds: 0,
   sessionLocked: false,
+  activeBackendSessionId: null,
   onUpdateCallback: null,
   onDepletedCallback: null,
 
@@ -33,6 +34,7 @@ const CreditsManager = {
     if (this.billingInterval) {
       const used = this.elapsedSeconds;
       this.remainingSeconds = Math.max(0, this.getCredits() * 60 - used);
+      this._persistBillingState();
       this._notifyUpdate();
     }
   },
@@ -51,20 +53,66 @@ const CreditsManager = {
     return !!this.billingInterval;
   },
 
+  _persistBillingState() {
+    if (!this.activeBackendSessionId || typeof IsynqStorage === 'undefined') return;
+    IsynqStorage.setEchoBillingState({
+      backendSessionId: this.activeBackendSessionId,
+      elapsedSeconds: this.elapsedSeconds,
+      remainingSeconds: this.remainingSeconds,
+      locked: this.sessionLocked
+    });
+  },
+
+  clearPersistedBillingState() {
+    this.activeBackendSessionId = null;
+    if (typeof IsynqStorage !== 'undefined') {
+      IsynqStorage.clearEchoBillingState();
+    }
+  },
+
   lockSession() {
-    if (this.sessionLocked) return;
+    const duration = this.elapsedSeconds;
+    if (this.sessionLocked) {
+      return { duration, minutesUsed: Math.ceil(duration / 60) };
+    }
     this.sessionLocked = true;
     this.remainingSeconds = 0;
     if (this.billingInterval) {
       clearInterval(this.billingInterval);
       this.billingInterval = null;
     }
+    this._persistBillingState();
     this._notifyUpdate();
-    if (this.onDepletedCallback) this.onDepletedCallback();
+    if (this.onDepletedCallback) {
+      this.onDepletedCallback({ duration, minutesUsed: Math.ceil(duration / 60) });
+    }
+    return { duration, minutesUsed: Math.ceil(duration / 60) };
   },
 
-  startBilling() {
-    if (this.billingInterval) return;
+  /**
+   * @param {{ backendSessionId?: string, restore?: { elapsedSeconds?: number, remainingSeconds?: number, locked?: boolean } }} opts
+   */
+  startBilling(opts = {}) {
+    if (this.billingInterval) return true;
+
+    const backendSessionId = opts.backendSessionId || null;
+    this.activeBackendSessionId = backendSessionId;
+
+    const restore = opts.restore;
+    const canRestore =
+      restore &&
+      backendSessionId &&
+      restore.backendSessionId === backendSessionId;
+
+    if (canRestore && restore.locked) {
+      this.sessionLocked = true;
+      this.elapsedSeconds = restore.elapsedSeconds ?? 0;
+      this.remainingSeconds = 0;
+      this._persistBillingState();
+      this._notifyUpdate();
+      return false;
+    }
+
     if (this.getCredits() <= 0) {
       this.lockSession();
       return false;
@@ -72,13 +120,23 @@ const CreditsManager = {
 
     this.sessionLocked = false;
     this.sessionStart = Date.now();
-    this.elapsedSeconds = 0;
-    this.remainingSeconds = this.getCredits() * 60;
+
+    if (canRestore) {
+      this.elapsedSeconds = Math.max(0, restore.elapsedSeconds ?? 0);
+      this.remainingSeconds = Math.max(0, restore.remainingSeconds ?? 0);
+      if (this.remainingSeconds <= 0) {
+        this.lockSession();
+        return false;
+      }
+    } else {
+      this.elapsedSeconds = 0;
+      this.remainingSeconds = this.getCredits() * 60;
+    }
 
     this.billingInterval = setInterval(() => {
       this.elapsedSeconds++;
       this.remainingSeconds = Math.max(0, this.remainingSeconds - 1);
-
+      this._persistBillingState();
       this._notifyUpdate();
 
       if (this.remainingSeconds <= 0) {
@@ -86,6 +144,7 @@ const CreditsManager = {
       }
     }, 1000);
 
+    this._persistBillingState();
     this._notifyUpdate();
     return true;
   },
@@ -125,7 +184,11 @@ const CreditsManager = {
   },
 
   onUpdate(cb) { this.onUpdateCallback = cb; },
-  onDepleted(cb) { this.onDepletedCallback = cb; }
+  onDepleted(cb) { this.onDepletedCallback = cb; },
+
+  markCreditsExhaustedLocally() {
+    this.setCredits(0, false);
+  }
 };
 
 window.CreditsManager = CreditsManager;

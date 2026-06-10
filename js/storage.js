@@ -240,6 +240,74 @@ const IsynqStorage = {
     });
   },
 
+  ECHO_FINALIZE_PENDING_KEY: 'echo_finalize_pending',
+  ECHO_BILLING_STATE_KEY: 'echo_billing_state',
+
+  setEchoBillingState(state) {
+    try {
+      sessionStorage.setItem(this.ECHO_BILLING_STATE_KEY, JSON.stringify(state));
+    } catch (e) {
+      console.warn('Could not persist echo billing state:', e);
+    }
+  },
+
+  getEchoBillingState() {
+    try {
+      const raw = sessionStorage.getItem(this.ECHO_BILLING_STATE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  },
+
+  clearEchoBillingState() {
+    try {
+      sessionStorage.removeItem(this.ECHO_BILLING_STATE_KEY);
+    } catch {
+      /* ignore */
+    }
+  },
+
+  setEchoFinalizePending(payload) {
+    try {
+      sessionStorage.setItem(this.ECHO_FINALIZE_PENDING_KEY, JSON.stringify(payload));
+    } catch (e) {
+      console.warn('Could not persist echo finalize state:', e);
+    }
+  },
+
+  getEchoFinalizePending() {
+    try {
+      const raw = sessionStorage.getItem(this.ECHO_FINALIZE_PENDING_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  },
+
+  clearEchoFinalizePending() {
+    try {
+      sessionStorage.removeItem(this.ECHO_FINALIZE_PENDING_KEY);
+    } catch {
+      /* ignore */
+    }
+  },
+
+  async endBackendSession(backendSessionId, durationSeconds, questionsAnswered = 0) {
+    const authSession = this.get('session');
+    if (!authSession?.token || !backendSessionId) return null;
+
+    const endResult = await this.fetchAPI(`/sessions/${backendSessionId}/end`, {
+      method: 'POST',
+      body: JSON.stringify({
+        duration: durationSeconds,
+        questionsAnswered
+      })
+    });
+    if (endResult?.user) this.syncUserFromApi(endResult.user);
+    return endResult;
+  },
+
   async startMeeting(type = 'general') {
     const session = this.get('session');
     if (!session?.token) return null;
@@ -283,11 +351,7 @@ const IsynqStorage = {
       }
 
       if (backendSessionId) {
-        const durationSeconds = meeting.duration
-          ? (typeof meeting.duration === 'number' && meeting.duration < 10000
-              ? meeting.duration * 60
-              : meeting.duration)
-          : undefined;
+        const durationSeconds = meeting.duration;
 
         const endResult = await this.fetchAPI(`/sessions/${backendSessionId}/end`, {
           method: 'POST',

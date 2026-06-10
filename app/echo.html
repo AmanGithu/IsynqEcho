@@ -158,28 +158,66 @@
     (async function initEcho() {
       if (!(await IsynqAuth.requireAuth())) return;
 
-      try {
-        const me = await IsynqStorage.fetchAPI('/auth/me');
-        if (me?.user?.settings) {
-          IsynqStorage.set('user_settings', {
-            ...(IsynqStorage.get('user_settings') || {}),
-            ...me.user.settings
-          });
+      async function finalizeEchoCredits(usage, questions = questionCount) {
+        const duration = usage?.duration ?? 0;
+        const pending = IsynqStorage.getEchoFinalizePending();
+        const backendSessionId = session.backendSessionId || pending?.backendSessionId;
+
+        if (!backendSessionId) {
+          CreditsManager.markCreditsExhaustedLocally();
+          IsynqStorage.clearEchoFinalizePending();
+          return;
         }
-      } catch (err) {
-        console.warn('Could not load account settings:', err);
+
+        try {
+          await IsynqStorage.endBackendSession(backendSessionId, duration, questions);
+          session = { ...session, backendSessionId: null };
+          IsynqStorage.set('copilot_session', session);
+          IsynqStorage.clearEchoFinalizePending();
+          IsynqStorage.clearEchoBillingState();
+          CreditsManager.clearPersistedBillingState();
+        } catch (err) {
+          console.warn('Could not finalize session on server:', err);
+          IsynqStorage.setEchoFinalizePending({
+            backendSessionId,
+            duration,
+            questionsAnswered: questions
+          });
+          CreditsManager.markCreditsExhaustedLocally();
+        }
+      }
+
+      const pendingFinalize = IsynqStorage.getEchoFinalizePending();
+      if (pendingFinalize?.backendSessionId) {
+        await finalizeEchoCredits(
+          { duration: pendingFinalize.duration ?? 0 },
+          pendingFinalize.questionsAnswered ?? 0
+        );
       }
 
       try {
-        const backendSession = await IsynqStorage.startMeeting(session.type || 'general');
-        if (backendSession?.id) {
-          session = { ...session, backendSessionId: backendSession.id };
-          IsynqStorage.set('copilot_session', session);
+        const me = await IsynqStorage.fetchAPI('/auth/me');
+        if (me?.user) {
+          IsynqStorage.syncUserFromApi(me.user);
         }
       } catch (err) {
-        showNotification(err.message || 'Could not start session', 'error');
-        setTimeout(() => { window.location.href = 'dashboard.html'; }, 2500);
-        return;
+        console.warn('Could not load account profile:', err);
+      }
+
+      const savedBilling = IsynqStorage.getEchoBillingState();
+
+      if (!session.backendSessionId) {
+        try {
+          const backendSession = await IsynqStorage.startMeeting(session.type || 'general');
+          if (backendSession?.id) {
+            session = { ...session, backendSessionId: backendSession.id };
+            IsynqStorage.set('copilot_session', session);
+          }
+        } catch (err) {
+          showNotification(err.message || 'Could not start session', 'error');
+          setTimeout(() => { window.location.href = 'dashboard.html'; }, 2500);
+          return;
+        }
       }
 
     const settings = IsynqStorage.get('user_settings') || {};
@@ -232,22 +270,36 @@
       updateSessionUiState();
     });
 
-    CreditsManager.onDepleted(() => {
+    CreditsManager.onDepleted(async (usage) => {
       if (isRecording) {
         isRecording = false;
         TranscriptionService.stop();
         micBtn.classList.remove('recording');
       }
+      IsynqStorage.setEchoFinalizePending({
+        backendSessionId: session.backendSessionId,
+        duration: usage?.duration ?? CreditsManager.elapsedSeconds,
+        questionsAnswered: questionCount
+      });
+      await finalizeEchoCredits(usage);
       updateSessionUiState();
       notifySessionLocked();
     });
 
-    if ((user?.creditsRemaining ?? 0) <= 0) {
+    const backendSessionId = session.backendSessionId;
+    const billingRestore =
+      savedBilling &&
+      backendSessionId &&
+      savedBilling.backendSessionId === backendSessionId
+        ? savedBilling
+        : null;
+
+    if ((user?.creditsRemaining ?? 0) <= 0 && !billingRestore?.locked) {
       CreditsManager.lockSession();
       document.getElementById('credits-time').textContent = '0:00';
       showNotification('No credits remaining. End session to leave.', 'error');
     } else {
-      CreditsManager.startBilling();
+      CreditsManager.startBilling({ backendSessionId, restore: billingRestore });
     }
     updateSessionUiState();
 
@@ -566,6 +618,9 @@
       }
 
       const usage = CreditsManager.stopBilling();
+      IsynqStorage.clearEchoFinalizePending();
+      IsynqStorage.clearEchoBillingState();
+      CreditsManager.clearPersistedBillingState();
 
       // Save meeting to history
       try {

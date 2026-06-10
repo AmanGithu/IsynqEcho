@@ -225,7 +225,7 @@
               </div>
             </div>
             <div class="meeting-meta">
-              <div class="meeting-duration">${m.duration || '0'} min</div>
+              <div class="meeting-duration">${m.duration ? Math.ceil(m.duration / 60) : '0'} min</div>
               <div>${new Date(m.date).toLocaleDateString()}</div>
             </div>
           </div>
