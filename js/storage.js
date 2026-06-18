@@ -1,6 +1,46 @@
 /* ============================================
-   ISYNQ — Storage Module
+   ISYNQ — Storage & Logger Module
    ============================================ */
+
+const IsynqLogger = {
+  level: localStorage.getItem('LOG_LEVEL') || 'info',
+  levels: { debug: 0, info: 1, warn: 2, error: 3 },
+  
+  _shouldLog(level) {
+    const current = this.levels[this.level.toLowerCase()] !== undefined ? this.levels[this.level.toLowerCase()] : 1;
+    const target = this.levels[level.toLowerCase()] !== undefined ? this.levels[level.toLowerCase()] : 1;
+    return target >= current;
+  },
+
+  _format(level, msg) {
+    const time = new Date().toLocaleTimeString();
+    return `[${time}] [${level.toUpperCase()}] ${msg}`;
+  },
+
+  log(level, msg, details) {
+    if (!this._shouldLog(level)) return;
+    const formatted = this._format(level, msg);
+    const styles = {
+      debug: 'color: #7f8c8d; font-weight: normal;',
+      info: 'color: #3498db; font-weight: bold;',
+      warn: 'color: #f39c12; font-weight: bold;',
+      error: 'color: #e74c3c; font-weight: bold;'
+    };
+    
+    if (details !== undefined && details !== null) {
+      console.log(`%c${formatted}`, styles[level] || '', details);
+    } else {
+      console.log(`%c${formatted}`, styles[level] || '');
+    }
+  },
+
+  debug(msg, details) { this.log('debug', msg, details); },
+  info(msg, details) { this.log('info', msg, details); },
+  warn(msg, details) { this.log('warn', msg, details); },
+  error(msg, details) { this.log('error', msg, details); }
+};
+
+window.IsynqLogger = IsynqLogger;
 
 const IsynqStorage = {
   API_BASE_URL:
@@ -37,7 +77,7 @@ const IsynqStorage = {
         headers
       });
     } catch (err) {
-      console.error('Fetch error:', err);
+      IsynqLogger.error('Fetch error:', err);
       throw this.wrapFetchError(err);
     }
 
@@ -163,7 +203,7 @@ const IsynqStorage = {
         });
         return;
       } catch (err) {
-        console.warn('Backend document sync failed, saving locally:', err);
+        IsynqLogger.warn('Backend document sync failed, saving locally:', err);
       }
     }
 
@@ -208,7 +248,7 @@ const IsynqStorage = {
           uploadedAt: d.createdAt
         }));
       } catch (err) {
-        console.warn('Backend documents fetch failed, using local:', err);
+        IsynqLogger.warn('Backend documents fetch failed, using local:', err);
       }
     }
 
@@ -227,7 +267,7 @@ const IsynqStorage = {
       try {
         await this.fetchAPI(`/context-docs/${id}`, { method: 'DELETE' });
       } catch (err) {
-        console.warn('Backend document delete failed:', err);
+        IsynqLogger.warn('Backend document delete failed:', err);
       }
     }
 
@@ -247,7 +287,7 @@ const IsynqStorage = {
     try {
       sessionStorage.setItem(this.ECHO_BILLING_STATE_KEY, JSON.stringify(state));
     } catch (e) {
-      console.warn('Could not persist echo billing state:', e);
+      IsynqLogger.warn('Could not persist echo billing state:', e);
     }
   },
 
@@ -272,7 +312,7 @@ const IsynqStorage = {
     try {
       sessionStorage.setItem(this.ECHO_FINALIZE_PENDING_KEY, JSON.stringify(payload));
     } catch (e) {
-      console.warn('Could not persist echo finalize state:', e);
+      IsynqLogger.warn('Could not persist echo finalize state:', e);
     }
   },
 
@@ -319,7 +359,7 @@ const IsynqStorage = {
       });
       return backendSession;
     } catch (err) {
-      console.warn('Backend session start failed:', err);
+      IsynqLogger.warn('Backend session start failed:', err);
       return null;
     }
   },
@@ -367,7 +407,7 @@ const IsynqStorage = {
         return { meeting: meetingWithId, user: endResult?.user };
       }
     } catch (err) {
-      console.warn('Backend session sync failed, will remain local only:', err);
+      IsynqLogger.warn('Backend session sync failed, will remain local only:', err);
     }
 
     return { meeting: meetingWithId };
@@ -389,7 +429,7 @@ const IsynqStorage = {
         meetings.forEach(m => store.put(m));
         return meetings.sort((a, b) => new Date(b.date) - new Date(a.date));
       } catch (err) {
-        console.warn('Backend fetch failed, using local data:', err);
+        IsynqLogger.warn('Backend fetch failed, using local data:', err);
       }
     }
 
@@ -412,7 +452,7 @@ const IsynqStorage = {
       await this.patchUserMe({ settings });
       return { synced: true };
     } catch (err) {
-      console.warn('Failed to sync settings to backend:', err);
+      IsynqLogger.warn('Failed to sync settings to backend:', err);
       return { synced: false };
     }
   },
@@ -423,7 +463,7 @@ const IsynqStorage = {
     try {
       await this.patchUserMe({ creditsRemaining });
     } catch (err) {
-      console.warn('Failed to sync credits to backend:', err);
+      IsynqLogger.warn('Failed to sync credits to backend:', err);
     }
   },
 

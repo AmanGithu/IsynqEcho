@@ -10,16 +10,19 @@ const IsynqAuth = {
   },
 
   async completeAuthExchange(code) {
+    IsynqLogger.debug('Completing auth exchange...');
     const data = await IsynqStorage.fetchAPI('/auth/exchange', {
       method: 'POST',
       body: JSON.stringify({ code })
     });
     const { user, token } = data;
     this._persistSession(user, token);
+    IsynqLogger.info(`Auth exchange completed successfully for user: ${user.id}`);
     return user;
   },
 
   async register({ name, email, password }) {
+    IsynqLogger.info(`Registering new user with email: ${email}`);
     const data = await IsynqStorage.fetchAPI('/auth/register', {
       method: 'POST',
       body: JSON.stringify({ name, email, password })
@@ -27,6 +30,7 @@ const IsynqAuth = {
 
     const { user, token } = data;
     this._persistSession(user, token);
+    IsynqLogger.info(`Registration successful. Session persisted for user: ${user.id}`);
 
     const existingSettings = IsynqStorage.get('user_settings');
     if (!existingSettings) {
@@ -39,8 +43,9 @@ const IsynqAuth = {
       IsynqStorage.set('user_settings', defaultSettings);
       try {
         await IsynqStorage.patchUserMe({ settings: defaultSettings });
+        IsynqLogger.debug('Default user settings synced to backend');
       } catch (err) {
-        console.warn('Could not sync default settings:', err);
+        IsynqLogger.warn('Could not sync default settings:', err);
       }
     }
 
@@ -48,6 +53,7 @@ const IsynqAuth = {
   },
 
   async login({ email, password }) {
+    IsynqLogger.info(`Logging in user: ${email}`);
     const data = await IsynqStorage.fetchAPI('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password })
@@ -55,6 +61,7 @@ const IsynqAuth = {
 
     const { user, token } = data;
     this._persistSession(user, token);
+    IsynqLogger.info(`Login successful. Session persisted for user: ${user.id}`);
     return user;
   },
 
@@ -99,6 +106,7 @@ const IsynqAuth = {
   },
 
   logout() {
+    IsynqLogger.info('Logging out user and clearing local session');
     IsynqStorage.remove('session');
     IsynqStorage.remove('current_user');
   },

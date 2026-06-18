@@ -22,7 +22,7 @@ const TranscriptionService = {
   initialize() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      console.error('Speech Recognition not supported');
+      IsynqLogger.error('Speech Recognition not supported in this browser');
       if (this.onStatusCallback) this.onStatusCallback('unsupported');
       return false;
     }
@@ -35,6 +35,7 @@ const TranscriptionService = {
 
     this.recognition.onstart = () => {
       this.isListening = true;
+      IsynqLogger.info('Web Speech API recognition session started');
       if (this.onStatusCallback) this.onStatusCallback('listening');
     };
 
@@ -81,7 +82,7 @@ const TranscriptionService = {
     };
 
     this.recognition.onerror = (event) => {
-      console.error('Speech recognition error:', event.error);
+      IsynqLogger.error(`Speech recognition error: ${event.error}`);
       if (event.error === 'not-allowed') {
         if (this.onStatusCallback) this.onStatusCallback('denied');
       } else if (event.error === 'no-speech') {
@@ -97,10 +98,11 @@ const TranscriptionService = {
         // Auto-restart if still supposed to be listening
         setTimeout(() => {
           if (this.isListening) {
-            try { this.recognition.start(); } catch (e) { console.log('Restart failed:', e); }
+            try { this.recognition.start(); } catch (e) { IsynqLogger.warn('Speech recognition restart failed:', e); }
           }
         }, 100);
       } else {
+        IsynqLogger.info('Web Speech API recognition session stopped');
         if (this.onStatusCallback) this.onStatusCallback('stopped');
       }
     };
@@ -109,6 +111,7 @@ const TranscriptionService = {
   },
 
   start() {
+    IsynqLogger.info('Starting Web Speech API transcription...');
     if (!this.recognition) {
       if (!this.initialize()) return false;
     }
@@ -119,7 +122,7 @@ const TranscriptionService = {
       this.resetSilenceTimer();
       return true;
     } catch (e) {
-      console.error('Failed to start recognition:', e);
+      IsynqLogger.error('Failed to start Speech Recognition:', e);
       return false;
     }
   },

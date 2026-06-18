@@ -101,6 +101,7 @@ ${this.contextDocs ? `USER'S BACKGROUND:\n${this.contextDocs}` : ''}`;
 
   async sendQuery(question, format = 'short', screenContext = null) {
     const messages = this.buildMessages(question, format, screenContext);
+    IsynqLogger.info(`Sending query to backend AI: "${question.substring(0, 60)}..." (format: ${format})`);
 
     try {
       // Use IsynqStorage.fetchAPI to route through backend
@@ -114,12 +115,13 @@ ${this.contextDocs ? `USER'S BACKGROUND:\n${this.contextDocs}` : ''}`;
         })
       });
 
+      IsynqLogger.info('Query completed successfully');
       return { 
         answer: data.answer, 
         tokens: data.usage?.total_tokens || 0 
       };
     } catch (error) {
-      console.error('LLM Engine Error (via Backend):', error);
+      IsynqLogger.error('LLM Engine Error (via Backend):', error);
       return { 
         answer: `⚠️ Error: ${error.message}. Check your backend connection or API settings.`, 
         error: true 
