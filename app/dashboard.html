@@ -20,6 +20,9 @@
         </a>
         <nav class="header-nav" style="gap:20px;">
           <a href="dashboard.html" style="color:var(--color-primary);font-weight:600;">Dashboard</a>
+          <a href="assistants.html">Assistants</a>
+          <a href="sessions.html">Sessions</a>
+          <a href="documents.html">Documents</a>
           <a href="settings.html">Settings</a>
         </nav>
         <div class="header-actions">
@@ -36,6 +39,9 @@
       style="display:none;position:fixed;top:var(--header-height);left:0;right:0;background:#fff;padding:16px;z-index:999;box-shadow:var(--shadow-md);">
       <a href="dashboard.html"
         style="display:block;padding:12px;font-weight:600;color:var(--color-primary);">Dashboard</a>
+      <a href="assistants.html" style="display:block;padding:12px;">Assistants</a>
+      <a href="sessions.html" style="display:block;padding:12px;">Sessions</a>
+      <a href="documents.html" style="display:block;padding:12px;">Documents</a>
       <a href="settings.html" style="display:block;padding:12px;">Settings</a>
       <button onclick="handleLogout()"
         style="display:block;padding:12px;color:var(--color-danger);width:100%;text-align:left;">Sign Out</button>
@@ -73,6 +79,17 @@
             <h4>General Meeting</h4>
             <p>For meetings, standups, and any conversation where you need quick, smart answers.</p>
           </div>
+        </div>
+      </div>
+
+      <!-- Saved Assistants -->
+      <div class="copilot-section">
+        <div class="app-page-header" style="margin-bottom:12px;">
+          <h3 style="font-size:1.125rem;">🤖 Your Assistants</h3>
+          <a href="assistants.html" style="color:var(--color-primary);font-weight:600;font-size:0.875rem;">View all →</a>
+        </div>
+        <div class="assistant-row-list" id="assistant-list">
+          <div class="empty-state" style="padding:32px;">Loading assistants...</div>
         </div>
       </div>
 
@@ -124,8 +141,8 @@
     </div>
   </div>
 
-  <script src="../js/storage.js"></script>
-  <script src="../js/auth.js"></script>
+  <script src="../js/storage.js?v=20260621a"></script>
+  <script src="../js/auth.js?v=20260621a"></script>
   <script>
     let selectedType = '';
 
@@ -140,7 +157,30 @@
       }
 
       loadHistory();
+      loadAssistants();
     })();
+
+    async function loadAssistants() {
+      const list = document.getElementById('assistant-list');
+      try {
+        const assistants = await IsynqStorage.getAssistants();
+        if (!assistants.length) {
+          list.innerHTML = `<div class="empty-state" style="padding:32px;">No assistants yet. <a href="assistants.html" style="color:var(--color-primary);font-weight:600;">Create your first assistant</a>.</div>`;
+          return;
+        }
+        list.innerHTML = assistants.slice(0, 5).map(a => `
+          <div class="assistant-row-item" onclick="window.location.href='assistants.html?id=${a.id}'">
+            <div class="left">
+              <span class="dot" style="background:${a.color || '#2563EB'}"></span>
+              <span>${a.name}</span>
+            </div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+        `).join('');
+      } catch (e) {
+        list.innerHTML = '<p style="text-align:center; padding:20px; color:var(--color-danger);">Failed to load assistants.</p>';
+      }
+    }
 
     function selectCopilot(type) {
       selectedType = type;

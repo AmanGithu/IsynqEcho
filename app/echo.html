@@ -143,11 +143,11 @@
     </div>
   </div>
 
-  <script src="../js/storage.js"></script>
-  <script src="../js/auth.js"></script>
-  <script src="../js/credits.js"></script>
-  <script src="../js/llm-engine.js"></script>
-  <script src="../js/transcription.js"></script>
+  <script src="../js/storage.js?v=20260621a"></script>
+  <script src="../js/auth.js?v=20260621a"></script>
+  <script src="../js/credits.js?v=20260621a"></script>
+  <script src="../js/llm-engine.js?v=20260621a"></script>
+  <script src="../js/transcription.js?v=20260621a"></script>
   <script>
     // State
     let isRecording = false;
@@ -392,10 +392,32 @@
         if (queryGeneration !== sessionGeneration) {
           return;
         }
-        addResponseCard(questionText, result.answer, format, result.error);
+        const cardId = addResponseCard(questionText, result.answer, format, result.error);
         if (!result.error) {
           LLMEngine.addToHistory('interviewer', questionText);
           LLMEngine.addToHistory('assistant', result.answer);
+
+          const liveSession = IsynqStorage.get('copilot_session') || {};
+          const persistSessionId = session.backendSessionId || liveSession.backendSessionId;
+
+          if (!persistSessionId) {
+            setPersistStatus(cardId, false, 'No active backend session — nothing to save against.');
+          } else {
+            try {
+              await IsynqStorage.fetchAPI(`/sessions/${persistSessionId}/transcript`, {
+                method: 'POST',
+                body: JSON.stringify({
+                  speaker: 'interviewer',
+                  text: questionText,
+                  isQuestion: true,
+                  response: result.answer
+                })
+              });
+              setPersistStatus(cardId, true);
+            } catch (persistErr) {
+              setPersistStatus(cardId, false, persistErr.message);
+            }
+          }
         }
       } catch (err) {
         removeTypingIndicator();
@@ -511,15 +533,37 @@
 
       const formatLabels = { short: '⚡ Short Answer', star: '⭐ STAR Format', detailed: '📝 Detailed', coding: '💻 Code Solution' };
       const card = document.createElement('div');
+      const cardId = 'resp-card-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
+      card.id = cardId;
       card.className = 'response-card';
       if (isError) card.style.borderColor = 'rgba(239,68,68,0.3)';
       card.innerHTML = `
     <div class="response-format">${formatLabels[format] || '💡 Response'}</div>
     <div style="font-size:0.8125rem;color:rgba(255,255,255,0.5);margin-bottom:8px;font-style:italic;">"${question}"</div>
     <div class="response-text">${formatAnswer(answer)}</div>
+    ${isError ? '' : '<div class="persist-status" style="margin-top:8px;font-size:0.6875rem;color:rgba(255,255,255,0.3);"></div>'}
   `;
       body.appendChild(card);
       body.scrollTop = body.scrollHeight;
+      return cardId;
+    }
+
+    // Shows a small, unobtrusive save indicator under a response card.
+    // Full error detail goes in the title attribute (hover tooltip) rather than cluttering the UI.
+    function setPersistStatus(cardId, saved, detail) {
+      const card = document.getElementById(cardId);
+      if (!card) return;
+      const statusEl = card.querySelector('.persist-status');
+      if (!statusEl) return;
+      if (saved) {
+        statusEl.textContent = '✓ Saved';
+        statusEl.style.color = 'rgba(74,222,128,0.7)';
+        statusEl.removeAttribute('title');
+      } else {
+        statusEl.textContent = '⚠ Not saved';
+        statusEl.style.color = 'rgba(248,113,113,0.7)';
+        if (detail) statusEl.title = detail;
+      }
     }
 
     // Format answer with markdown-like styling

@@ -19,6 +19,9 @@
         </a>
         <nav class="header-nav" style="gap:20px;">
           <a href="dashboard.html">Dashboard</a>
+          <a href="assistants.html">Assistants</a>
+          <a href="sessions.html">Sessions</a>
+          <a href="documents.html">Documents</a>
           <a href="settings.html" style="color:var(--color-primary);font-weight:600;">Settings</a>
         </nav>
         <div class="header-actions">
@@ -76,8 +79,8 @@
       </div>
     </div>
   </div>
-  <script src="../js/storage.js"></script>
-  <script src="../js/auth.js"></script>
+  <script src="../js/storage.js?v=20260621a"></script>
+  <script src="../js/auth.js?v=20260621a"></script>
   <script>
     (async function initSettings() {
       if (!(await IsynqAuth.requireAuth())) return;

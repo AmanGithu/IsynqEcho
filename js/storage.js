@@ -5,7 +5,7 @@
 const IsynqLogger = {
   level: localStorage.getItem('LOG_LEVEL') || 'info',
   levels: { debug: 0, info: 1, warn: 2, error: 3 },
-  
+
   _shouldLog(level) {
     const current = this.levels[this.level.toLowerCase()] !== undefined ? this.levels[this.level.toLowerCase()] : 1;
     const target = this.levels[level.toLowerCase()] !== undefined ? this.levels[level.toLowerCase()] : 1;
@@ -26,7 +26,7 @@ const IsynqLogger = {
       warn: 'color: #f39c12; font-weight: bold;',
       error: 'color: #e74c3c; font-weight: bold;'
     };
-    
+
     if (details !== undefined && details !== null) {
       console.log(`%c${formatted}`, styles[level] || '', details);
     } else {
@@ -280,6 +280,34 @@ const IsynqStorage = {
     });
   },
 
+  // Assistants
+  async getAssistants() {
+    try {
+      return await this.fetchAPI('/assistants');
+    } catch (err) {
+      IsynqLogger.warn('Failed to fetch assistants:', err);
+      return [];
+    }
+  },
+
+  async createAssistant({ name, type, instructions, color }) {
+    return this.fetchAPI('/assistants', {
+      method: 'POST',
+      body: JSON.stringify({ name, type, instructions, color })
+    });
+  },
+
+  async updateAssistant(id, { name, type, instructions, color }) {
+    return this.fetchAPI(`/assistants/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ name, type, instructions, color })
+    });
+  },
+
+  async deleteAssistant(id) {
+    return this.fetchAPI(`/assistants/${id}`, { method: 'DELETE' });
+  },
+
   ECHO_FINALIZE_PENDING_KEY: 'echo_finalize_pending',
   ECHO_BILLING_STATE_KEY: 'echo_billing_state',
 
@@ -333,6 +361,32 @@ const IsynqStorage = {
     }
   },
 
+  async addTranscriptEntry(backendSessionId, { speaker, text, isQuestion, response }) {
+    if (!backendSessionId) return null;
+    try {
+      return await this.fetchAPI(`/sessions/${backendSessionId}/transcript`, {
+        method: 'POST',
+        body: JSON.stringify({ speaker, text, isQuestion, response })
+      });
+    } catch (err) {
+      IsynqLogger.warn('Failed to persist transcript entry:', err);
+      return null;
+    }
+  },
+
+  async getSessions() {
+    try {
+      return await this.fetchAPI('/sessions/history');
+    } catch (err) {
+      IsynqLogger.warn('Failed to fetch sessions:', err);
+      return [];
+    }
+  },
+
+  async getSessionDetail(sessionId) {
+    return this.fetchAPI(`/sessions/${sessionId}`);
+  },
+
   async endBackendSession(backendSessionId, durationSeconds, questionsAnswered = 0) {
     const authSession = this.get('session');
     if (!authSession?.token || !backendSessionId) return null;
@@ -348,14 +402,14 @@ const IsynqStorage = {
     return endResult;
   },
 
-  async startMeeting(type = 'general') {
+  async startMeeting(type = 'general', assistantId = null) {
     const session = this.get('session');
     if (!session?.token) return null;
 
     try {
       const backendSession = await this.fetchAPI('/sessions/start', {
         method: 'POST',
-        body: JSON.stringify({ type })
+        body: JSON.stringify({ type, assistantId, platform: 'web' })
       });
       return backendSession;
     } catch (err) {

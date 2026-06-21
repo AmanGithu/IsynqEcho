@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Assistants — Isynq</title>
+  <link rel="stylesheet" href="../css/design-system.css">
+  <link rel="stylesheet" href="../css/components.css">
+  <link rel="stylesheet" href="../css/dashboard.css">
+</head>
+
+<body>
+  <div class="app-layout">
+    <header class="app-header">
+      <div class="header-inner">
+        <a href="../index.html" class="header-logo">
+          <div class="logo-icon">I</div><span>Isynq</span>
+        </a>
+        <nav class="header-nav" style="gap:20px;">
+          <a href="dashboard.html">Dashboard</a>
+          <a href="assistants.html" style="color:var(--color-primary);font-weight:600;">Assistants</a>
+          <a href="sessions.html">Sessions</a>
+          <a href="documents.html">Documents</a>
+          <a href="settings.html">Settings</a>
+        </nav>
+        <div class="header-actions">
+          <span id="user-name" style="font-weight:500;font-size:0.9375rem;color:var(--color-text-secondary);"></span>
+          <button onclick="handleLogout()" class="btn btn-ghost btn-sm" style="color:var(--color-danger);">Sign
+            Out</button>
+        </div>
+        <button class="hamburger" aria-label="Menu"
+          onclick="document.querySelector('.mobile-dash-nav').classList.toggle('open')"><span></span><span></span><span></span></button>
+      </div>
+    </header>
+
+    <div class="mobile-dash-nav"
+      style="display:none;position:fixed;top:var(--header-height);left:0;right:0;background:#fff;padding:16px;z-index:999;box-shadow:var(--shadow-md);">
+      <a href="dashboard.html" style="display:block;padding:12px;">Dashboard</a>
+      <a href="assistants.html" style="display:block;padding:12px;font-weight:600;color:var(--color-primary);">Assistants</a>
+      <a href="sessions.html" style="display:block;padding:12px;">Sessions</a>
+      <a href="documents.html" style="display:block;padding:12px;">Documents</a>
+      <a href="settings.html" style="display:block;padding:12px;">Settings</a>
+      <button onclick="handleLogout()"
+        style="display:block;padding:12px;color:var(--color-danger);width:100%;text-align:left;">Sign Out</button>
+    </div>
+
+    <div class="app-content">
+      <div class="app-page-header">
+        <div>
+          <h2>Assistants<span class="count-badge" id="count-badge">0 total</span></h2>
+          <p>Manage and create reusable meeting co-pilots</p>
+        </div>
+        <button class="btn btn-primary" onclick="openModal()">+ New assistant</button>
+      </div>
+
+      <div class="data-table-card">
+        <div class="data-table-toolbar">
+          <div class="data-table-search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="7" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input type="text" id="search-input" placeholder="Search assistants..." oninput="renderTable()">
+          </div>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="width:60px;">No</th>
+              <th>Name</th>
+              <th style="width:120px;">Type</th>
+              <th style="width:80px;"></th>
+            </tr>
+          </thead>
+          <tbody id="table-body"></tbody>
+        </table>
+        <div class="data-table-footer">
+          <span id="showing-text">Showing 0 of 0 assistants</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create/Edit Modal -->
+  <div class="modal-overlay" id="modal" style="display:none;">
+    <div class="modal-card">
+      <h3 id="modal-title">New Assistant</h3>
+      <div class="form-group">
+        <label class="form-label">Name</label>
+        <input type="text" class="form-input" id="form-name" placeholder="e.g. Java Interview">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Type</label>
+        <select class="form-input" id="form-type">
+          <option value="interview">Interview</option>
+          <option value="trivia">Trivia &amp; Quiz</option>
+          <option value="custom" selected>Custom</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Instructions (optional)</label>
+        <textarea class="form-input" id="form-instructions" rows="4"
+          placeholder="Context or persona for this assistant..."></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Color</label>
+        <input type="color" id="form-color" value="#2563EB"
+          style="width:48px;height:36px;border:none;border-radius:8px;cursor:pointer;">
+      </div>
+      <div style="display:flex;gap:12px;margin-top:8px;">
+        <button class="btn btn-primary" onclick="saveAssistant()">Save</button>
+        <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-ghost" id="delete-btn" style="display:none;color:var(--color-danger);margin-left:auto;"
+          onclick="removeAssistant()">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../js/storage.js?v=20260621a"></script>
+  <script src="../js/auth.js?v=20260621a"></script>
+  <script>
+    let assistants = [];
+    let editingId = null;
+
+    (async function init() {
+      if (!(await IsynqAuth.requireAuth())) return;
+
+      const user = IsynqAuth.getCurrentUser();
+      if (user) document.getElementById('user-name').textContent = user.name;
+
+      await loadAssistants();
+
+      const params = new URLSearchParams(window.location.search);
+      const launchPreset = params.get('launch');
+      const openId = params.get('id');
+      if (launchPreset) {
+        openModal();
+        document.getElementById('form-type').value = launchPreset === 'custom' ? 'custom' : launchPreset;
+      } else if (openId) {
+        if (assistants.some(a => a.id === openId)) {
+          editAssistant(openId);
+        } else {
+          alert('That assistant could not be found — it may have been deleted.');
+        }
+      }
+    })();
+
+    async function loadAssistants() {
+      assistants = await IsynqStorage.getAssistants();
+      renderTable();
+    }
+
+    function renderTable() {
+      const query = (document.getElementById('search-input').value || '').toLowerCase();
+      const filtered = assistants.filter(a => a.name.toLowerCase().includes(query));
+      const body = document.getElementById('table-body');
+
+      document.getElementById('count-badge').textContent = `${assistants.length} total`;
+      document.getElementById('showing-text').textContent = `Showing 1-${filtered.length} of ${filtered.length} assistants`;
+
+      if (!filtered.length) {
+        body.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--color-text-tertiary);padding:32px;">No assistants found.</td></tr>`;
+        return;
+      }
+
+      body.innerHTML = filtered.map((a, i) => `
+    <tr>
+      <td>${i + 1}</td>
+      <td><span class="dot" style="background:${a.color || '#2563EB'}"></span><span class="assistant-name-link" onclick="editAssistant('${a.id}')">${a.name}</span></td>
+      <td>${a.type}</td>
+      <td><button class="btn btn-ghost btn-sm" onclick="editAssistant('${a.id}')">Edit</button></td>
+    </tr>
+  `).join('');
+    }
+
+    function openModal() {
+      editingId = null;
+      document.getElementById('modal-title').textContent = 'New Assistant';
+      document.getElementById('form-name').value = '';
+      document.getElementById('form-type').value = 'custom';
+      document.getElementById('form-instructions').value = '';
+      document.getElementById('form-color').value = '#2563EB';
+      document.getElementById('delete-btn').style.display = 'none';
+      document.getElementById('modal').style.display = 'flex';
+    }
+
+    function editAssistant(id) {
+      const a = assistants.find(x => x.id === id);
+      if (!a) return;
+      editingId = id;
+      document.getElementById('modal-title').textContent = 'Edit Assistant';
+      document.getElementById('form-name').value = a.name;
+      document.getElementById('form-type').value = a.type;
+      document.getElementById('form-instructions').value = a.instructions || '';
+      document.getElementById('form-color').value = a.color || '#2563EB';
+      document.getElementById('delete-btn').style.display = 'inline-block';
+      document.getElementById('modal').style.display = 'flex';
+    }
+
+    function closeModal() {
+      document.getElementById('modal').style.display = 'none';
+    }
+
+    async function saveAssistant() {
+      const name = document.getElementById('form-name').value.trim();
+      if (!name) { alert('Name is required'); return; }
+      const payload = {
+        name,
+        type: document.getElementById('form-type').value,
+        instructions: document.getElementById('form-instructions').value,
+        color: document.getElementById('form-color').value
+      };
+
+      try {
+        if (editingId) {
+          await IsynqStorage.updateAssistant(editingId, payload);
+        } else {
+          await IsynqStorage.createAssistant(payload);
+        }
+        closeModal();
+        await loadAssistants();
+      } catch (err) {
+        alert(err.message || 'Failed to save assistant');
+      }
+    }
+
+    async function removeAssistant() {
+      if (!editingId) return;
+      if (!confirm('Delete this assistant? This cannot be undone.')) return;
+      try {
+        await IsynqStorage.deleteAssistant(editingId);
+        closeModal();
+        await loadAssistants();
+      } catch (err) {
+        alert(err.message || 'Failed to delete assistant');
+      }
+    }
+
+    function handleLogout() {
+      IsynqAuth.logout();
+      window.location.href = '../index.html';
+    }
+  </script>
+</body>
+
+</html>

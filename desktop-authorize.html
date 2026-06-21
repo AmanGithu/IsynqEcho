@@ -112,12 +112,12 @@
     }
 
     .btn-authorize {
-      background: #3B82F6;
+      background: var(--color-primary);
       color: #fff;
     }
 
     .btn-authorize:hover {
-      background: #2563EB;
+      background: var(--color-primary-dark);
     }
 
     .btn-authorize:disabled {
@@ -136,7 +136,7 @@
     }
 
     .footer a {
-      color: #3B82F6;
+      color: var(--color-primary);
       text-decoration: none;
     }
 
@@ -164,7 +164,6 @@
     #authorize-panel .card-main {
       display: flex;
     }
-
   </style>
 </head>
 
@@ -196,8 +195,8 @@
     </p>
   </div>
 
-  <script src="js/storage.js?v=2"></script>
-  <script src="js/auth.js?v=2"></script>
+  <script src="js/storage.js?v=20260621a"></script>
+  <script src="js/auth.js?v=20260621a"></script>
   <script>
     const params = new URLSearchParams(window.location.search);
     const redirectUri = params.get('redirect_uri');

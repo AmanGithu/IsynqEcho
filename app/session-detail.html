@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Session Detail — Isynq</title>
+  <link rel="stylesheet" href="../css/design-system.css">
+  <link rel="stylesheet" href="../css/components.css">
+  <link rel="stylesheet" href="../css/dashboard.css">
+  <style>
+    .session-detail-grid {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 24px;
+      align-items: start;
+    }
+
+    .session-tabs {
+      display: flex;
+      gap: 24px;
+      border-bottom: 1px solid var(--color-border-light);
+      padding: 0 20px;
+    }
+
+    .session-tab {
+      padding: 16px 0;
+      font-size: 0.9375rem;
+      font-weight: 600;
+      color: var(--color-text-tertiary);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+    }
+
+    .session-tab.active {
+      color: var(--color-text-primary);
+      border-bottom-color: var(--color-primary);
+    }
+
+    .session-content-toolbar {
+      display: flex;
+      justify-content: flex-end;
+      padding: 16px 20px 0;
+    }
+
+    .transcript-line {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--color-border-light);
+    }
+
+    .transcript-line:last-child { border-bottom: none; }
+
+    .transcript-line .ts {
+      font-size: 0.75rem;
+      color: var(--color-text-tertiary);
+      margin-bottom: 4px;
+    }
+
+    .transcript-line .txt {
+      font-size: 0.9375rem;
+      color: var(--color-text-primary);
+    }
+
+    .qa-pair {
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--color-border-light);
+    }
+
+    .qa-pair:last-child { border-bottom: none; }
+
+    .qa-question {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--color-text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 4px;
+    }
+
+    .qa-question-text {
+      font-size: 0.9375rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+
+    .qa-response-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--color-primary);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 4px;
+    }
+
+    .qa-response-text {
+      font-size: 0.9375rem;
+      color: var(--color-text-secondary);
+      background: var(--color-primary-lighter);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+    }
+
+    .info-card {
+      background: #fff;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--color-border-light);
+      padding: 20px;
+    }
+
+    .info-card h4 {
+      font-size: 1rem;
+      margin-bottom: 16px;
+    }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--color-border-light);
+      font-size: 0.875rem;
+    }
+
+    .info-row:last-child { border-bottom: none; }
+
+    .info-row .label { color: var(--color-text-tertiary); }
+    .info-row .value { font-weight: 600; text-align: right; }
+  </style>
+</head>
+
+<body>
+  <div class="app-layout">
+    <header class="app-header">
+      <div class="header-inner">
+        <a href="../index.html" class="header-logo">
+          <div class="logo-icon">I</div><span>Isynq</span>
+        </a>
+        <nav class="header-nav" style="gap:20px;">
+          <a href="dashboard.html">Dashboard</a>
+          <a href="assistants.html">Assistants</a>
+          <a href="sessions.html" style="color:var(--color-primary);font-weight:600;">Sessions</a>
+          <a href="documents.html">Documents</a>
+          <a href="settings.html">Settings</a>
+        </nav>
+        <div class="header-actions">
+          <span id="user-name" style="font-weight:500;font-size:0.9375rem;color:var(--color-text-secondary);"></span>
+          <button onclick="handleLogout()" class="btn btn-ghost btn-sm" style="color:var(--color-danger);">Sign
+            Out</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="app-content">
+      <a href="sessions.html" class="btn btn-ghost btn-sm" style="margin-bottom:16px;">← Back to Sessions</a>
+      <h2 id="session-title" style="margin-bottom:24px;">Loading session...</h2>
+
+      <div class="session-detail-grid">
+        <div class="data-table-card">
+          <div class="session-tabs">
+            <div class="session-tab active" id="tab-transcript" onclick="switchTab('transcript')">Transcript</div>
+            <div class="session-tab" id="tab-responses" onclick="switchTab('responses')">AI Responses</div>
+          </div>
+          <div class="session-content-toolbar">
+            <button class="btn btn-ghost btn-sm" onclick="copyTranscript()">📋 Copy transcript</button>
+          </div>
+          <div id="transcript-panel"></div>
+          <div id="responses-panel" style="display:none;"></div>
+        </div>
+
+        <div class="info-card">
+          <h4>ℹ️ Session Information</h4>
+          <div class="info-row"><span class="label">Assistant</span><span class="value" id="info-assistant">—</span></div>
+          <div class="info-row"><span class="label">Start time</span><span class="value" id="info-start">—</span></div>
+          <div class="info-row"><span class="label">End time</span><span class="value" id="info-end">—</span></div>
+          <div class="info-row"><span class="label">Duration</span><span class="value" id="info-duration">—</span></div>
+          <div class="info-row"><span class="label">Used by</span><span class="value" id="info-user">—</span></div>
+          <div class="info-row"><span class="label">Platform</span><span class="value" id="info-platform">—</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../js/storage.js?v=20260621a"></script>
+  <script src="../js/auth.js?v=20260621a"></script>
+  <script>
+    let sessionData = null;
+
+    (async function init() {
+      if (!(await IsynqAuth.requireAuth())) return;
+
+      const user = IsynqAuth.getCurrentUser();
+      if (user) document.getElementById('user-name').textContent = user.name;
+
+      const params = new URLSearchParams(window.location.search);
+      const sessionId = params.get('id');
+      if (!sessionId) {
+        document.getElementById('session-title').textContent = 'Session not found';
+        return;
+      }
+
+      try {
+        sessionData = await IsynqStorage.getSessionDetail(sessionId);
+        renderSession(sessionData, user);
+      } catch (err) {
+        document.getElementById('session-title').textContent = 'Session not found';
+      }
+    })();
+
+    function renderSession(s, user) {
+      const assistantName = s.assistant?.name || (s.type ? s.type.charAt(0).toUpperCase() + s.type.slice(1) : 'Session');
+      document.getElementById('session-title').textContent = `${assistantName} — ${new Date(s.startTime).toLocaleString()}`;
+
+      document.getElementById('info-assistant').textContent = assistantName;
+      document.getElementById('info-start').textContent = new Date(s.startTime).toLocaleString();
+      document.getElementById('info-end').textContent = s.endTime ? new Date(s.endTime).toLocaleString() : '—';
+      document.getElementById('info-duration').textContent = s.duration ? `${Math.ceil(s.duration / 60)}m` : '—';
+      document.getElementById('info-user').textContent = user?.email || '—';
+      document.getElementById('info-platform').textContent = (s.platform || 'desktop').charAt(0).toUpperCase() + (s.platform || 'desktop').slice(1) + (s.platform === 'web' ? ' App' : '');
+
+      const transcripts = s.transcripts || [];
+
+      const transcriptPanel = document.getElementById('transcript-panel');
+      if (!transcripts.length) {
+        transcriptPanel.innerHTML = `<div class="empty-state" style="padding:48px;">No transcript recorded for this session.</div>`;
+      } else {
+        transcriptPanel.innerHTML = transcripts.map(t => `
+          <div class="transcript-line">
+            <div class="ts">${new Date(t.timestamp).toLocaleTimeString()}</div>
+            <div class="txt">${escapeHtml(t.text)}</div>
+          </div>
+        `).join('');
+      }
+
+      const responsesPanel = document.getElementById('responses-panel');
+      const qaPairs = transcripts.filter(t => t.isQuestion && t.response);
+      if (!qaPairs.length) {
+        responsesPanel.innerHTML = `<div class="empty-state" style="padding:48px;">No AI responses recorded for this session.</div>`;
+      } else {
+        responsesPanel.innerHTML = qaPairs.map(t => `
+          <div class="qa-pair">
+            <div class="qa-question">${new Date(t.timestamp).toLocaleTimeString()}</div>
+            <div class="qa-question-text">${escapeHtml(t.text)}</div>
+            <div class="qa-response-label">AI Response</div>
+            <div class="qa-response-text">${escapeHtml(t.response)}</div>
+          </div>
+        `).join('');
+      }
+    }
+
+    function switchTab(tab) {
+      document.getElementById('tab-transcript').classList.toggle('active', tab === 'transcript');
+      document.getElementById('tab-responses').classList.toggle('active', tab === 'responses');
+      document.getElementById('transcript-panel').style.display = tab === 'transcript' ? 'block' : 'none';
+      document.getElementById('responses-panel').style.display = tab === 'responses' ? 'block' : 'none';
+    }
+
+    function copyTranscript() {
+      if (!sessionData?.transcripts?.length) {
+        alert('No transcript to copy.');
+        return;
+      }
+      const text = sessionData.transcripts.map(t => `[${new Date(t.timestamp).toLocaleTimeString()}] ${t.text}`).join('\n');
+      navigator.clipboard.writeText(text).then(() => {
+        alert('Transcript copied to clipboard.');
+      }).catch(() => {
+        alert('Could not copy transcript.');
+      });
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str || '';
+      return div.innerHTML;
+    }
+
+    function handleLogout() {
+      IsynqAuth.logout();
+      window.location.href = '../index.html';
+    }
+  </script>
+</body>
+
+</html>
