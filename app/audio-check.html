@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audio Check — Isynq</title>
+  <link rel="stylesheet" href="../css/design-system.css">
+  <link rel="stylesheet" href="../css/components.css">
+  <link rel="stylesheet" href="../css/dashboard.css">
+</head>
+
+<body>
+  <div class="app-layout">
+    <header class="app-header">
+      <div class="header-inner">
+        <a href="../index.html" class="header-logo">
+          <div class="logo-icon">I</div><span>Isynq</span>
+        </a>
+        <nav class="header-nav" style="gap:20px;">
+          <a href="dashboard.html">Dashboard</a>
+          <a href="assistants.html">Assistants</a>
+          <a href="sessions.html">Sessions</a>
+          <a href="documents.html">Documents</a>
+          <a href="audio-check.html" style="color:var(--color-primary);font-weight:600;">Audio Check</a>
+          <a href="settings.html">Settings</a>
+        </nav>
+        <div class="header-actions">
+          <span id="user-name" style="font-weight:500;font-size:0.9375rem;color:var(--color-text-secondary);"></span>
+          <button onclick="handleLogout()" class="btn btn-ghost btn-sm" style="color:var(--color-danger);">Sign
+            Out</button>
+        </div>
+        <button class="hamburger" aria-label="Menu"
+          onclick="document.querySelector('.mobile-dash-nav').classList.toggle('open')"><span></span><span></span><span></span></button>
+      </div>
+    </header>
+
+    <div class="mobile-dash-nav"
+      style="display:none;position:fixed;top:var(--header-height);left:0;right:0;background:#fff;padding:16px;z-index:999;box-shadow:var(--shadow-md);">
+      <a href="dashboard.html" style="display:block;padding:12px;">Dashboard</a>
+      <a href="assistants.html" style="display:block;padding:12px;">Assistants</a>
+      <a href="sessions.html" style="display:block;padding:12px;">Sessions</a>
+      <a href="documents.html" style="display:block;padding:12px;">Documents</a>
+      <a href="audio-check.html" style="display:block;padding:12px;font-weight:600;color:var(--color-primary);">Audio Check</a>
+      <a href="settings.html" style="display:block;padding:12px;">Settings</a>
+      <button onclick="handleLogout()"
+        style="display:block;padding:12px;color:var(--color-danger);width:100%;text-align:left;">Sign Out</button>
+    </div>
+
+    <div class="app-content">
+      <div class="wizard-header">
+        <h1>🎤 Audio Check <span class="wizard-badge">Web App only</span></h1>
+        <p>Isynq's web app listens through your microphone to assist you during meetings. Let's make sure it can hear everything.</p>
+      </div>
+
+      <div class="step-track" id="step-track"></div>
+
+      <!-- STEP 1: Setup -->
+      <div class="wizard-card" id="step-setup">
+        <h3>How it works on the web</h3>
+        <p>Since Isynq's web app runs in your browser, it uses your microphone to hear what's being said in the meeting. That means a few things need to be set up.</p>
+        <ul>
+          <li><strong>Allow microphone access</strong> — click "Allow" when your browser asks.</li>
+          <li><strong>Play audio through speakers</strong> — meeting audio needs to come out loud so the mic can pick it up.</li>
+          <li><strong>Remove earphones</strong> — if audio goes to your ears, the mic won't hear the other participants in the meeting.</li>
+        </ul>
+        <div class="wizard-action">
+          <button class="btn btn-primary" onclick="goToStep('microphone')">Start test →</button>
+        </div>
+      </div>
+
+      <!-- STEP 2: Microphone -->
+      <div class="wizard-card" id="step-microphone" style="display:none;">
+        <h3>Microphone check</h3>
+        <p>Say something for 5 seconds. We'll play it back so you can check your mic is working.</p>
+
+        <div id="mic-idle">
+          <p style="margin-top:8px;">Tap the button and start talking.</p>
+          <div class="wizard-action">
+            <button class="btn btn-primary" onclick="startMicTest()">🎤 Start Recording</button>
+          </div>
+        </div>
+
+        <div id="mic-countdown" style="display:none;text-align:center;padding:24px 0;">
+          <div style="font-size:2.5rem;font-weight:800;color:var(--color-primary);" id="mic-countdown-num">3</div>
+          <p>Get ready to talk...</p>
+        </div>
+
+        <div id="mic-recording" style="display:none;">
+          <div class="wizard-status-text"><span class="dot"></span> Listening now — keep talking</div>
+          <div class="wizard-level-bar"><div class="fill" id="mic-progress-fill"></div></div>
+        </div>
+
+        <div id="mic-result" style="display:none;">
+          <p>Done! Play it back and check.</p>
+          <div class="wizard-action" style="margin-top:12px;">
+            <button class="btn btn-ghost" onclick="playMicRecording()">▶ Play Recording</button>
+          </div>
+          <p style="text-align:center;font-weight:600;margin-top:20px;">Did you hear yourself?</p>
+          <div class="wizard-action" style="display:flex;gap:12px;justify-content:center;">
+            <button class="btn btn-primary" onclick="goToStep('speakers')">Yes, sounds clear</button>
+            <button class="btn btn-ghost" onclick="showMicTips()">No, something's off</button>
+          </div>
+          <div id="mic-tips" class="wizard-tips" style="display:none;">
+            <h4>Here are a few things that usually help:</h4>
+            <ul>
+              <li>Check sound settings — make sure the right mic is selected</li>
+              <li>Make sure the mic isn't muted or covered</li>
+              <li>Move closer and speak at a normal volume</li>
+            </ul>
+            <div style="display:flex;gap:16px;align-items:center;margin-top:12px;">
+              <button class="btn btn-ghost btn-sm" onclick="resetMicTest()">🔄 Record Again</button>
+              <a href="#" onclick="goToStep('speakers');return false;" style="font-size:0.875rem;color:var(--color-text-tertiary);">Actually it's fine, continue →</a>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:20px;">
+          <a href="#" onclick="goToStep('setup');return false;" style="color:var(--color-text-tertiary);font-size:0.875rem;">← Back</a>
+        </div>
+      </div>
+
+      <!-- STEP 3: Speakers -->
+      <div class="wizard-card" id="step-speakers" style="display:none;">
+        <h3>Meeting audio check</h3>
+        <p>We'll play a sound through your speakers and check if the mic picks it up — this is how Isynq will hear meeting participants.</p>
+        <div class="warning-note">⚠️ Speakers only — no earbuds for web sessions.</div>
+
+        <div id="speaker-idle">
+          <div class="wizard-action">
+            <button class="btn btn-primary" onclick="startSpeakerTest()">🔊 Play Test Sound</button>
+          </div>
+        </div>
+
+        <div id="speaker-countdown" style="display:none;text-align:center;padding:24px 0;">
+          <div style="font-size:2.5rem;font-weight:800;color:var(--color-primary);" id="speaker-countdown-num">3</div>
+          <p>Sound starting...</p>
+        </div>
+
+        <div id="speaker-playing" style="display:none;">
+          <div class="wizard-status-text"><span class="dot"></span> Playing test sound — listening for it</div>
+          <div class="wizard-level-bar"><div class="fill" id="speaker-progress-fill"></div></div>
+        </div>
+
+        <div id="speaker-result" style="display:none;">
+          <p style="text-align:center;font-weight:600;margin-top:12px;">Did the recording capture the sound?</p>
+          <div class="wizard-action" style="display:flex;gap:12px;justify-content:center;">
+            <button class="btn btn-primary" onclick="goToStep('done')">Yes, I heard it</button>
+            <button class="btn btn-ghost" onclick="showSpeakerTips()">No, I didn't hear anything</button>
+          </div>
+          <div id="speaker-tips" class="wizard-tips" style="display:none;">
+            <h4>Here are a few things that usually help:</h4>
+            <ul>
+              <li>Check your speaker volume isn't muted or too low</li>
+              <li>Make sure the correct output device is selected</li>
+              <li>Make sure earphones/headphones are disconnected</li>
+            </ul>
+            <div style="margin-top:12px;">
+              <button class="btn btn-ghost btn-sm" onclick="resetSpeakerTest()">🔄 Retest Speakers</button>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:20px;">
+          <a href="#" onclick="goToStep('microphone');return false;" style="color:var(--color-text-tertiary);font-size:0.875rem;">← Back</a>
+        </div>
+      </div>
+
+      <!-- STEP 4: Done -->
+      <div class="wizard-card" id="step-done" style="display:none;text-align:center;">
+        <div class="wizard-done-icon">✓</div>
+        <h3>You're all set!</h3>
+        <p>Your microphone and speakers are ready for your next Isynq session.</p>
+        <div class="wizard-action" style="display:flex;gap:12px;justify-content:center;">
+          <button class="btn btn-ghost" onclick="resetWizard()">Run test again</button>
+          <a href="dashboard.html" class="btn btn-primary">Go to Dashboard</a>
+        </div>
+      </div>
+
+      <div class="wizard-footer-link">
+        Get the best experience with the <a href="../index.html">Desktop App</a> — works with headphones, stays invisible to screen sharing, and captures system audio seamlessly.
+      </div>
+    </div>
+  </div>
+
+  <script src="../js/storage.js?v=20260621a"></script>
+  <script src="../js/auth.js?v=20260621a"></script>
+  <script>
+    const STEPS = ['setup', 'microphone', 'speakers', 'done'];
+    let currentStep = 'setup';
+    let micStream = null;
+    let mediaRecorder = null;
+    let recordedChunks = [];
+    let recordedAudioUrl = null;
+    let testToneSource = null;
+
+    (async function init() {
+      if (!(await IsynqAuth.requireAuth())) return;
+      const user = IsynqAuth.getCurrentUser();
+      if (user) document.getElementById('user-name').textContent = user.name;
+      renderStepTrack();
+    })();
+
+    function renderStepTrack() {
+      const labels = { setup: 'Setup', microphone: 'Microphone', speakers: 'Speakers', done: 'Done' };
+      const currentIndex = STEPS.indexOf(currentStep);
+      const track = document.getElementById('step-track');
+      track.innerHTML = STEPS.map((s, i) => {
+        const isDone = i < currentIndex;
+        const isActive = i === currentIndex;
+        const circle = isDone ? '✓' : (i + 1);
+        const item = `
+          <div class="step-item ${isActive ? 'active' : ''} ${isDone ? 'done' : ''}">
+            <div class="step-circle">${circle}</div>
+            <div class="step-label">${labels[s]}</div>
+          </div>`;
+        const connector = i < STEPS.length - 1 ? `<div class="step-connector ${i < currentIndex ? 'done' : ''}"></div>` : '';
+        return item + connector;
+      }).join('');
+    }
+
+    function goToStep(step) {
+      currentStep = step;
+      STEPS.forEach(s => {
+        document.getElementById('step-' + s).style.display = (s === step) ? 'block' : 'none';
+      });
+      renderStepTrack();
+    }
+
+    function resetWizard() {
+      resetMicTest();
+      resetSpeakerTest();
+      goToStep('setup');
+    }
+
+    // ---------- Microphone test ----------
+    async function startMicTest() {
+      document.getElementById('mic-idle').style.display = 'none';
+      document.getElementById('mic-countdown').style.display = 'block';
+
+      try {
+        micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      } catch (err) {
+        alert('Microphone access was denied. Please allow microphone access and try again.');
+        document.getElementById('mic-idle').style.display = 'block';
+        document.getElementById('mic-countdown').style.display = 'none';
+        return;
+      }
+
+      await countdown('mic-countdown-num', 3);
+      document.getElementById('mic-countdown').style.display = 'none';
+      document.getElementById('mic-recording').style.display = 'block';
+
+      recordedChunks = [];
+      mediaRecorder = new MediaRecorder(micStream);
+      mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(recordedChunks, { type: 'audio/webm' });
+        recordedAudioUrl = URL.createObjectURL(blob);
+        micStream.getTracks().forEach(t => t.stop());
+        document.getElementById('mic-recording').style.display = 'none';
+        document.getElementById('mic-result').style.display = 'block';
+      };
+      mediaRecorder.start();
+      await animateProgress('mic-progress-fill', 5000);
+      mediaRecorder.stop();
+    }
+
+    function playMicRecording() {
+      if (!recordedAudioUrl) return;
+      new Audio(recordedAudioUrl).play();
+    }
+
+    function showMicTips() {
+      document.getElementById('mic-tips').style.display = 'block';
+    }
+
+    function resetMicTest() {
+      document.getElementById('mic-idle').style.display = 'block';
+      document.getElementById('mic-countdown').style.display = 'none';
+      document.getElementById('mic-recording').style.display = 'none';
+      document.getElementById('mic-result').style.display = 'none';
+      document.getElementById('mic-tips').style.display = 'none';
+      document.getElementById('mic-progress-fill').style.width = '0%';
+      recordedChunks = [];
+      recordedAudioUrl = null;
+    }
+
+    // ---------- Speaker test ----------
+    async function startSpeakerTest() {
+      document.getElementById('speaker-idle').style.display = 'none';
+      document.getElementById('speaker-countdown').style.display = 'block';
+
+      await countdown('speaker-countdown-num', 3);
+      document.getElementById('speaker-countdown').style.display = 'none';
+      document.getElementById('speaker-playing').style.display = 'block';
+
+      playTestTone(5000);
+      await animateProgress('speaker-progress-fill', 5000);
+
+      document.getElementById('speaker-playing').style.display = 'none';
+      document.getElementById('speaker-result').style.display = 'block';
+    }
+
+    function playTestTone(durationMs) {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = ctx.createOscillator();
+      const gain = ctx.createGain();
+      oscillator.type = 'sine';
+      oscillator.frequency.value = 440;
+      gain.gain.value = 0.2;
+      oscillator.connect(gain);
+      gain.connect(ctx.destination);
+      oscillator.start();
+      testToneSource = { oscillator, ctx };
+      setTimeout(() => {
+        oscillator.stop();
+        ctx.close();
+      }, durationMs);
+    }
+
+    function showSpeakerTips() {
+      document.getElementById('speaker-tips').style.display = 'block';
+    }
+
+    function resetSpeakerTest() {
+      document.getElementById('speaker-idle').style.display = 'block';
+      document.getElementById('speaker-countdown').style.display = 'none';
+      document.getElementById('speaker-playing').style.display = 'none';
+      document.getElementById('speaker-result').style.display = 'none';
+      document.getElementById('speaker-tips').style.display = 'none';
+      document.getElementById('speaker-progress-fill').style.width = '0%';
+    }
+
+    // ---------- Helpers ----------
+    function countdown(elId, seconds) {
+      return new Promise(resolve => {
+        const el = document.getElementById(elId);
+        let n = seconds;
+        el.textContent = n;
+        const interval = setInterval(() => {
+          n--;
+          if (n <= 0) {
+            clearInterval(interval);
+            resolve();
+          } else {
+            el.textContent = n;
+          }
+        }, 1000);
+      });
+    }
+
+    function animateProgress(elId, durationMs) {
+      return new Promise(resolve => {
+        const el = document.getElementById(elId);
+        el.style.width = '0%';
+        const start = Date.now();
+        const interval = setInterval(() => {
+          const pct = Math.min(100, ((Date.now() - start) / durationMs) * 100);
+          el.style.width = pct + '%';
+          if (pct >= 100) {
+            clearInterval(interval);
+            resolve();
+          }
+        }, 50);
+      });
+    }
+
+    function handleLogout() {
+      IsynqAuth.logout();
+      window.location.href = '../index.html';
+    }
+  </script>
+</body>
+
+</html>
