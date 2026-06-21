@@ -308,6 +308,48 @@ const IsynqStorage = {
     return this.fetchAPI(`/assistants/${id}`, { method: 'DELETE' });
   },
 
+  // Account / Billing
+  async updateProfile({ firstName, lastName }) {
+    return this.fetchAPI('/users/me', {
+      method: 'PATCH',
+      body: JSON.stringify({ firstName, lastName })
+    });
+  },
+
+  async changePassword({ currentPassword, newPassword }) {
+    return this.fetchAPI('/users/me/password', {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword, newPassword })
+    });
+  },
+
+  async purchaseCredits(hours) {
+    return this.fetchAPI('/billing/purchase', {
+      method: 'POST',
+      body: JSON.stringify({ hours })
+    });
+  },
+
+  async getTransactions() {
+    try {
+      const res = await this.fetchAPI('/billing/transactions');
+      return res.transactions || [];
+    } catch (err) {
+      IsynqLogger.warn('Failed to fetch transactions:', err);
+      return [];
+    }
+  },
+
+  async getCreditHistory() {
+    try {
+      const res = await this.fetchAPI('/billing/credit-history');
+      return res.entries || [];
+    } catch (err) {
+      IsynqLogger.warn('Failed to fetch credit history:', err);
+      return [];
+    }
+  },
+
   ECHO_FINALIZE_PENDING_KEY: 'echo_finalize_pending',
   ECHO_BILLING_STATE_KEY: 'echo_billing_state',
 
