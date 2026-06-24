@@ -128,30 +128,10 @@
 </head>
 
 <body>
-  <div class="app-layout">
-    <header class="app-header">
-      <div class="header-inner">
-        <a href="../index.html" class="header-logo">
-          <div class="logo-icon">I</div><span>Isynq</span>
-        </a>
-        <nav class="header-nav" style="gap:20px;">
-          <a href="dashboard.html">Dashboard</a>
-          <a href="assistants.html">Assistants</a>
-          <a href="sessions.html" style="color:var(--color-primary);font-weight:600;">Sessions</a>
-          <a href="documents.html">Documents</a>
-          <a href="audio-check.html">Audio Check</a>
-          <a href="account.html">Account</a>
-          <a href="settings.html">Settings</a>
-        </nav>
-        <div class="header-actions">
-          <span id="user-name" style="font-weight:500;font-size:0.9375rem;color:var(--color-text-secondary);"></span>
-          <button onclick="handleLogout()" class="btn btn-ghost btn-sm" style="color:var(--color-danger);">Sign
-            Out</button>
-        </div>
-      </div>
-    </header>
-
-    <div class="app-content">
+  <div class="app-shell">
+    <div id="sidebar-root"></div>
+    <div class="app-main">
+      <div class="app-content">
       <a href="sessions.html" class="btn btn-ghost btn-sm" style="margin-bottom:16px;">← Back to Sessions</a>
       <h2 id="session-title" style="margin-bottom:24px;">Loading session...</h2>
 
@@ -180,17 +160,19 @@
       </div>
     </div>
   </div>
+  </div>
 
   <script src="../js/storage.js?v=20260621a"></script>
   <script src="../js/auth.js?v=20260621a"></script>
+  <script src="../js/sidebar.js?v=20260621a"></script>
   <script>
     let sessionData = null;
 
     (async function init() {
       if (!(await IsynqAuth.requireAuth())) return;
+      IsynqSidebar.render('sessions');
 
       const user = IsynqAuth.getCurrentUser();
-      if (user) document.getElementById('user-name').textContent = user.name;
 
       const params = new URLSearchParams(window.location.search);
       const sessionId = params.get('id');

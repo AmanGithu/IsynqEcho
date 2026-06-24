@@ -11,28 +11,10 @@
 </head>
 
 <body>
-  <div class="app-layout">
-    <header class="app-header">
-      <div class="header-inner">
-        <a href="../index.html" class="header-logo">
-          <div class="logo-icon">I</div><span>Isynq</span>
-        </a>
-        <nav class="header-nav" style="gap:20px;">
-          <a href="dashboard.html">Dashboard</a>
-          <a href="assistants.html">Assistants</a>
-          <a href="sessions.html">Sessions</a>
-          <a href="documents.html">Documents</a>
-          <a href="audio-check.html">Audio Check</a>
-          <a href="account.html">Account</a>
-          <a href="settings.html" style="color:var(--color-primary);font-weight:600;">Settings</a>
-        </nav>
-        <div class="header-actions">
-          <button onclick="IsynqAuth.logout();window.location.href='../index.html'" class="btn btn-ghost btn-sm"
-            style="color:var(--color-danger);">Sign Out</button>
-        </div>
-      </div>
-    </header>
-    <div class="app-content">
+  <div class="app-shell">
+    <div id="sidebar-root"></div>
+    <div class="app-main">
+      <div class="app-content">
       <h2 style="margin-bottom:24px;">Settings</h2>
       <div style="display:grid;gap:24px;max-width:600px;">
         <div class="card">
@@ -81,11 +63,15 @@
       </div>
     </div>
   </div>
+  </div>
+
   <script src="../js/storage.js?v=20260621a"></script>
   <script src="../js/auth.js?v=20260621a"></script>
+  <script src="../js/sidebar.js?v=20260621a"></script>
   <script>
     (async function initSettings() {
       if (!(await IsynqAuth.requireAuth())) return;
+      IsynqSidebar.render('settings');
 
     try {
       const me = await IsynqStorage.fetchAPI('/auth/me');

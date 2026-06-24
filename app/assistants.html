@@ -11,45 +11,10 @@
 </head>
 
 <body>
-  <div class="app-layout">
-    <header class="app-header">
-      <div class="header-inner">
-        <a href="../index.html" class="header-logo">
-          <div class="logo-icon">I</div><span>Isynq</span>
-        </a>
-        <nav class="header-nav" style="gap:20px;">
-          <a href="dashboard.html">Dashboard</a>
-          <a href="assistants.html" style="color:var(--color-primary);font-weight:600;">Assistants</a>
-          <a href="sessions.html">Sessions</a>
-          <a href="documents.html">Documents</a>
-          <a href="audio-check.html">Audio Check</a>
-          <a href="account.html">Account</a>
-          <a href="settings.html">Settings</a>
-        </nav>
-        <div class="header-actions">
-          <span id="user-name" style="font-weight:500;font-size:0.9375rem;color:var(--color-text-secondary);"></span>
-          <button onclick="handleLogout()" class="btn btn-ghost btn-sm" style="color:var(--color-danger);">Sign
-            Out</button>
-        </div>
-        <button class="hamburger" aria-label="Menu"
-          onclick="document.querySelector('.mobile-dash-nav').classList.toggle('open')"><span></span><span></span><span></span></button>
-      </div>
-    </header>
-
-    <div class="mobile-dash-nav"
-      style="display:none;position:fixed;top:var(--header-height);left:0;right:0;background:#fff;padding:16px;z-index:999;box-shadow:var(--shadow-md);">
-      <a href="dashboard.html" style="display:block;padding:12px;">Dashboard</a>
-      <a href="assistants.html" style="display:block;padding:12px;font-weight:600;color:var(--color-primary);">Assistants</a>
-      <a href="sessions.html" style="display:block;padding:12px;">Sessions</a>
-      <a href="documents.html" style="display:block;padding:12px;">Documents</a>
-      <a href="audio-check.html" style="display:block;padding:12px;">Audio Check</a>
-      <a href="account.html" style="display:block;padding:12px;">Account</a>
-      <a href="settings.html" style="display:block;padding:12px;">Settings</a>
-      <button onclick="handleLogout()"
-        style="display:block;padding:12px;color:var(--color-danger);width:100%;text-align:left;">Sign Out</button>
-    </div>
-
-    <div class="app-content">
+  <div class="app-shell">
+    <div id="sidebar-root"></div>
+    <div class="app-main">
+      <div class="app-content">
       <div class="app-page-header">
         <div>
           <h2>Assistants<span class="count-badge" id="count-badge">0 total</span></h2>
@@ -120,18 +85,20 @@
       </div>
     </div>
   </div>
+  </div>
 
   <script src="../js/storage.js?v=20260621a"></script>
   <script src="../js/auth.js?v=20260621a"></script>
+  <script src="../js/sidebar.js?v=20260621a"></script>
   <script>
     let assistants = [];
     let editingId = null;
 
     (async function init() {
       if (!(await IsynqAuth.requireAuth())) return;
+      IsynqSidebar.render('assistants');
 
       const user = IsynqAuth.getCurrentUser();
-      if (user) document.getElementById('user-name').textContent = user.name;
 
       await loadAssistants();
 

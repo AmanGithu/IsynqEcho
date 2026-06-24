@@ -133,45 +133,10 @@
 </head>
 
 <body>
-  <div class="app-layout">
-    <header class="app-header">
-      <div class="header-inner">
-        <a href="../index.html" class="header-logo">
-          <div class="logo-icon">I</div><span>Isynq</span>
-        </a>
-        <nav class="header-nav" style="gap:20px;">
-          <a href="dashboard.html">Dashboard</a>
-          <a href="assistants.html">Assistants</a>
-          <a href="sessions.html">Sessions</a>
-          <a href="documents.html">Documents</a>
-          <a href="audio-check.html">Audio Check</a>
-          <a href="account.html" style="color:var(--color-primary);font-weight:600;">Account</a>
-          <a href="settings.html">Settings</a>
-        </nav>
-        <div class="header-actions">
-          <span id="user-name" style="font-weight:500;font-size:0.9375rem;color:var(--color-text-secondary);"></span>
-          <button onclick="handleLogout()" class="btn btn-ghost btn-sm" style="color:var(--color-danger);">Sign
-            Out</button>
-        </div>
-        <button class="hamburger" aria-label="Menu"
-          onclick="document.querySelector('.mobile-dash-nav').classList.toggle('open')"><span></span><span></span><span></span></button>
-      </div>
-    </header>
-
-    <div class="mobile-dash-nav"
-      style="display:none;position:fixed;top:var(--header-height);left:0;right:0;background:#fff;padding:16px;z-index:999;box-shadow:var(--shadow-md);">
-      <a href="dashboard.html" style="display:block;padding:12px;">Dashboard</a>
-      <a href="assistants.html" style="display:block;padding:12px;">Assistants</a>
-      <a href="sessions.html" style="display:block;padding:12px;">Sessions</a>
-      <a href="documents.html" style="display:block;padding:12px;">Documents</a>
-      <a href="audio-check.html" style="display:block;padding:12px;">Audio Check</a>
-      <a href="account.html" style="display:block;padding:12px;font-weight:600;color:var(--color-primary);">Account</a>
-      <a href="settings.html" style="display:block;padding:12px;">Settings</a>
-      <button onclick="handleLogout()"
-        style="display:block;padding:12px;color:var(--color-danger);width:100%;text-align:left;">Sign Out</button>
-    </div>
-
-    <div class="app-content">
+  <div class="app-shell">
+    <div id="sidebar-root"></div>
+    <div class="app-main">
+      <div class="app-content">
       <div style="text-transform:uppercase;font-size:0.75rem;font-weight:700;color:var(--color-text-tertiary);letter-spacing:0.05em;margin-bottom:4px;">Overview</div>
       <h2 style="margin-bottom:20px;">Account</h2>
 
@@ -307,9 +272,11 @@
       </div>
     </div>
   </div>
+  </div>
 
   <script src="../js/storage.js?v=20260621a"></script>
   <script src="../js/auth.js?v=20260621a"></script>
+  <script src="../js/sidebar.js?v=20260621a"></script>
   <script>
     let currentUser = null;
     let selectedHours = 1;
@@ -318,10 +285,16 @@
     (async function init() {
       if (!(await IsynqAuth.requireAuth())) return;
       currentUser = IsynqAuth.getCurrentUser();
-      if (currentUser) document.getElementById('user-name').textContent = currentUser.name;
 
+      const params = new URLSearchParams(window.location.search);
+      const requestedTab = params.get('tab');
+      const validTabs = ['profile', 'credits', 'transactions', 'history', 'security'];
+      const initialTab = validTabs.includes(requestedTab) ? requestedTab : 'profile';
+
+      IsynqSidebar.render('account', initialTab);
       loadProfile();
       loadCredits();
+      if (initialTab !== 'profile') switchAccountTab(initialTab);
     })();
 
     function switchAccountTab(tab) {
@@ -331,6 +304,7 @@
       });
       if (tab === 'transactions') loadTransactions();
       if (tab === 'history') loadHistory();
+      IsynqSidebar.render('account', tab);
     }
 
     function loadProfile() {
@@ -348,7 +322,7 @@
         const result = await IsynqStorage.updateProfile({ firstName, lastName });
         IsynqStorage.set('user', result.user);
         currentUser = result.user;
-        document.getElementById('user-name').textContent = currentUser.name;
+        IsynqSidebar.render('account', 'profile');
         alert('Profile updated successfully.');
       } catch (err) {
         alert(err.message || 'Failed to update profile');
