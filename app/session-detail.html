@@ -156,15 +156,16 @@
           <div class="info-row"><span class="label">Duration</span><span class="value" id="info-duration">—</span></div>
           <div class="info-row"><span class="label">Used by</span><span class="value" id="info-user">—</span></div>
           <div class="info-row"><span class="label">Platform</span><span class="value" id="info-platform">—</span></div>
+          <div class="info-row"><span class="label">Tokens used</span><span class="value" id="info-tokens">—</span></div>
         </div>
       </div>
     </div>
   </div>
   </div>
 
-  <script src="../js/storage.js?v=20260621a"></script>
-  <script src="../js/auth.js?v=20260621a"></script>
-  <script src="../js/sidebar.js?v=20260621a"></script>
+  <script src="../js/storage.js?v=20260709a"></script>
+  <script src="../js/auth.js?v=20260709a"></script>
+  <script src="../js/sidebar.js?v=20260709a"></script>
   <script>
     let sessionData = null;
 
@@ -199,6 +200,7 @@
       document.getElementById('info-duration').textContent = s.duration ? `${Math.ceil(s.duration / 60)}m` : '—';
       document.getElementById('info-user').textContent = user?.email || '—';
       document.getElementById('info-platform').textContent = (s.platform || 'desktop').charAt(0).toUpperCase() + (s.platform || 'desktop').slice(1) + (s.platform === 'web' ? ' App' : '');
+      document.getElementById('info-tokens').textContent = s.totalTokens ? s.totalTokens.toLocaleString() : '—';
 
       const transcripts = s.transcripts || [];
 

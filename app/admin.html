@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Isynq</title>
+  <link rel="stylesheet" href="../css/design-system.css">
+  <link rel="stylesheet" href="../css/components.css">
+  <link rel="stylesheet" href="../css/dashboard.css">
+  <style>
+    .account-tabs {
+      display: flex;
+      gap: 28px;
+      border-bottom: 1px solid var(--color-border-light);
+      margin-bottom: 28px;
+    }
+
+    .account-tab {
+      padding: 0 0 14px;
+      font-size: 0.9375rem;
+      font-weight: 600;
+      color: var(--color-text-tertiary);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+    }
+
+    .account-tab.active {
+      color: var(--color-text-primary);
+      border-bottom-color: var(--color-primary);
+    }
+
+    .account-panel { display: none; }
+    .account-panel.active { display: block; }
+  </style>
+</head>
+
+<body>
+  <div class="app-shell">
+    <div id="sidebar-root"></div>
+    <div class="app-main">
+      <div class="app-content">
+      <div style="text-transform:uppercase;font-size:0.75rem;font-weight:700;color:var(--color-text-tertiary);letter-spacing:0.05em;margin-bottom:4px;">Superadmin</div>
+      <h2 style="margin-bottom:20px;">Admin</h2>
+
+      <div class="account-tabs">
+        <div class="account-tab active" id="tab-config" onclick="switchAdminTab('config')">System Config</div>
+        <div class="account-tab" id="tab-users" onclick="switchAdminTab('users')">Users</div>
+        <div class="account-tab" id="tab-billing" onclick="switchAdminTab('billing')">Billing Overview</div>
+      </div>
+
+      <!-- SYSTEM CONFIG -->
+      <div class="account-panel active" id="panel-config">
+        <div style="display:grid;gap:24px;max-width:600px;">
+          <div class="card">
+            <h4 style="margin-bottom:16px;">🤖 AI Answers</h4>
+            <div class="form-group">
+              <label class="form-label">Enabled providers</label>
+              <div style="display:flex;gap:16px;">
+                <label><input type="checkbox" id="cfg-enabled-openai"> OpenAI</label>
+                <label><input type="checkbox" id="cfg-enabled-gemini"> Gemini</label>
+                <label><input type="checkbox" id="cfg-enabled-ollama"> Ollama</label>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Default provider</label>
+              <select class="form-input" id="cfg-default-provider">
+                <option value="openai">OpenAI</option>
+                <option value="gemini">Gemini</option>
+                <option value="ollama">Ollama</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Answer model — OpenAI</label>
+              <input class="form-input" type="text" id="cfg-model-openai" placeholder="gpt-4o-mini">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Answer model — Gemini</label>
+              <input class="form-input" type="text" id="cfg-model-gemini" placeholder="gemini-3.1-flash-lite">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Answer model — Ollama</label>
+              <input class="form-input" type="text" id="cfg-model-ollama" placeholder="llama3">
+            </div>
+          </div>
+          <div class="card">
+            <h4 style="margin-bottom:16px;">🎙️ Transcription</h4>
+            <p style="font-size:0.8125rem;color:var(--color-text-tertiary);margin-bottom:16px;">Speech-to-text uses its own provider and models. Only OpenAI and Gemini support transcription.</p>
+            <div class="form-group">
+              <label class="form-label">Transcription provider</label>
+              <select class="form-input" id="cfg-transcription-provider">
+                <option value="openai">OpenAI</option>
+                <option value="gemini">Gemini</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Transcription model — OpenAI</label>
+              <input class="form-input" type="text" id="cfg-transcription-model-openai" placeholder="whisper-1">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Transcription model — Gemini</label>
+              <input class="form-input" type="text" id="cfg-transcription-model-gemini" placeholder="gemini-3.1-flash-lite">
+            </div>
+          </div>
+          <div class="card">
+            <h4 style="margin-bottom:16px;">🔑 API Keys</h4>
+            <p style="font-size:0.8125rem;color:var(--color-text-tertiary);margin-bottom:16px;">Server-side keys used when a user hasn't set their own. Saved keys are never shown in full — leave a field blank to keep the existing key.</p>
+            <div class="form-group">
+              <label class="form-label">OpenAI API key <span id="cfg-key-openai-status" style="font-weight:400;color:var(--color-text-tertiary);"></span></label>
+              <input class="form-input" type="password" id="cfg-key-openai" autocomplete="off" placeholder="sk-...">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Gemini API key <span id="cfg-key-gemini-status" style="font-weight:400;color:var(--color-text-tertiary);"></span></label>
+              <input class="form-input" type="password" id="cfg-key-gemini" autocomplete="off" placeholder="AIza...">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Ollama base URL</label>
+              <input class="form-input" type="url" id="cfg-key-ollama-url" placeholder="http://localhost:11434">
+            </div>
+          </div>
+          <div class="card">
+            <h4 style="margin-bottom:16px;">🚦 Feature Flags</h4>
+            <div class="form-group">
+              <label><input type="checkbox" id="cfg-signups-enabled"> Signups enabled</label>
+            </div>
+            <div class="form-group">
+              <label><input type="checkbox" id="cfg-maintenance-mode"> Maintenance mode</label>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Maintenance message</label>
+              <textarea class="form-input" id="cfg-maintenance-message" rows="2" placeholder="Shown to users while maintenance mode is on"></textarea>
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="saveConfig()">Save Config</button>
+        </div>
+      </div>
+
+      <!-- USERS -->
+      <div class="account-panel" id="panel-users">
+        <div class="data-table-card">
+          <div class="data-table-toolbar">
+            <div class="data-table-search">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="7" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+              <input type="text" id="user-search-input" placeholder="Search users by name or email..." oninput="loadUsers()">
+            </div>
+          </div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th style="width:90px;">Plan</th>
+                <th style="width:100px;">Role</th>
+                <th style="width:90px;">Credits</th>
+                <th style="width:90px;">Status</th>
+                <th style="width:80px;"></th>
+              </tr>
+            </thead>
+            <tbody id="users-table-body"></tbody>
+          </table>
+          <div class="data-table-footer">
+            <span id="users-showing-text">Showing 0 of 0 users</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- BILLING OVERVIEW -->
+      <div class="account-panel" id="panel-billing">
+        <div class="card" style="margin-bottom:24px;">
+          <h4 style="margin-bottom:16px;">Transactions (all users)</h4>
+          <table class="data-table">
+            <thead>
+              <tr><th>Date</th><th>User</th><th>Hours</th><th>Amount</th><th>Status</th></tr>
+            </thead>
+            <tbody id="billing-transactions-body"></tbody>
+          </table>
+        </div>
+        <div class="card">
+          <h4 style="margin-bottom:16px;">Credit Ledger (all users)</h4>
+          <table class="data-table">
+            <thead>
+              <tr><th>Date</th><th>User</th><th>Delta</th><th>Reason</th><th>Balance</th></tr>
+            </thead>
+            <tbody id="billing-ledger-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <!-- Edit User Modal -->
+  <div class="modal-overlay" id="user-modal" style="display:none;">
+    <div class="modal-card">
+      <h3>Edit User</h3>
+      <div class="form-group">
+        <label class="form-label">Role</label>
+        <select class="form-input" id="um-role">
+          <option value="user">user</option>
+          <option value="superadmin">superadmin</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Plan</label>
+        <input class="form-input" type="text" id="um-plan">
+      </div>
+      <div class="form-group">
+        <label><input type="checkbox" id="um-disabled"> Account disabled</label>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Adjust credits</label>
+        <input class="form-input" type="number" id="um-credit-delta" placeholder="e.g. 60 or -30" style="margin-bottom:8px;">
+        <input class="form-input" type="text" id="um-credit-reason" placeholder="Reason (required)">
+        <button class="btn btn-ghost btn-sm" style="margin-top:8px;" onclick="applyCreditAdjustment()">Apply credit adjustment</button>
+      </div>
+      <div style="display:flex;gap:12px;margin-top:8px;">
+        <button class="btn btn-primary" onclick="saveUser()">Save</button>
+        <button class="btn btn-ghost" onclick="closeUserModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../js/storage.js?v=20260709a"></script>
+  <script src="../js/auth.js?v=20260709a"></script>
+  <script src="../js/sidebar.js?v=20260709a"></script>
+  <script>
+    let allUsers = [];
+    let currentEditUserId = null;
+
+    (async function init() {
+      if (!(await IsynqAuth.requireAuth())) return;
+      const user = IsynqAuth.getCurrentUser();
+      if (user?.role !== 'superadmin') {
+        window.location.href = 'dashboard.html';
+        return;
+      }
+      IsynqSidebar.render('admin');
+      await loadConfig();
+    })();
+
+    function switchAdminTab(tab) {
+      ['config', 'users', 'billing'].forEach(t => {
+        document.getElementById('tab-' + t).classList.toggle('active', t === tab);
+        document.getElementById('panel-' + t).classList.toggle('active', t === tab);
+      });
+      if (tab === 'users') loadUsers();
+      if (tab === 'billing') loadBilling();
+    }
+
+    async function loadConfig() {
+      try {
+        const cfg = await IsynqStorage.getAdminConfig();
+        document.getElementById('cfg-enabled-openai').checked = cfg.enabledProviders.includes('openai');
+        document.getElementById('cfg-enabled-gemini').checked = cfg.enabledProviders.includes('gemini');
+        document.getElementById('cfg-enabled-ollama').checked = cfg.enabledProviders.includes('ollama');
+        document.getElementById('cfg-default-provider').value = cfg.defaultProvider;
+        document.getElementById('cfg-model-openai').value = cfg.defaultModels?.openai || '';
+        document.getElementById('cfg-model-gemini').value = cfg.defaultModels?.gemini || '';
+        document.getElementById('cfg-model-ollama').value = cfg.defaultModels?.ollama || '';
+        document.getElementById('cfg-transcription-provider').value = cfg.transcriptionProvider || 'gemini';
+        document.getElementById('cfg-transcription-model-openai').value = cfg.transcriptionModels?.openai || '';
+        document.getElementById('cfg-transcription-model-gemini').value = cfg.transcriptionModels?.gemini || '';
+        // Key inputs stay blank (blank = keep existing); the label shows whether one is saved.
+        // Full keys are never sent to the browser — only { set, last4 } status.
+        const keyLabel = (s) => s?.set ? `— saved (…${s.last4})` : '— not set';
+        document.getElementById('cfg-key-openai-status').textContent = keyLabel(cfg.apiKeyStatus?.openai);
+        document.getElementById('cfg-key-gemini-status').textContent = keyLabel(cfg.apiKeyStatus?.gemini);
+        document.getElementById('cfg-key-openai').value = '';
+        document.getElementById('cfg-key-gemini').value = '';
+        document.getElementById('cfg-key-ollama-url').value = cfg.apiKeys?.ollamaBaseUrl || '';
+        document.getElementById('cfg-signups-enabled').checked = !!cfg.signupsEnabled;
+        document.getElementById('cfg-maintenance-mode').checked = !!cfg.maintenanceMode;
+        document.getElementById('cfg-maintenance-message').value = cfg.maintenanceMessage || '';
+      } catch (err) {
+        alert(err.message || 'Failed to load system config');
+      }
+    }
+
+    async function saveConfig() {
+      const enabledProviders = ['openai', 'gemini', 'ollama'].filter(p => document.getElementById(`cfg-enabled-${p}`).checked);
+      const patch = {
+        enabledProviders,
+        defaultProvider: document.getElementById('cfg-default-provider').value,
+        defaultModels: {
+          openai: document.getElementById('cfg-model-openai').value.trim(),
+          gemini: document.getElementById('cfg-model-gemini').value.trim(),
+          ollama: document.getElementById('cfg-model-ollama').value.trim()
+        },
+        transcriptionProvider: document.getElementById('cfg-transcription-provider').value,
+        transcriptionModels: {
+          openai: document.getElementById('cfg-transcription-model-openai').value.trim(),
+          gemini: document.getElementById('cfg-transcription-model-gemini').value.trim()
+        },
+        signupsEnabled: document.getElementById('cfg-signups-enabled').checked,
+        maintenanceMode: document.getElementById('cfg-maintenance-mode').checked,
+        maintenanceMessage: document.getElementById('cfg-maintenance-message').value.trim()
+      };
+
+      // Only send keys the admin actually typed — blank means "keep existing"
+      // (the backend also ignores blank/masked values as a second line of defense).
+      const apiKeys = {};
+      const openaiKey = document.getElementById('cfg-key-openai').value.trim();
+      const geminiKey = document.getElementById('cfg-key-gemini').value.trim();
+      const ollamaUrl = document.getElementById('cfg-key-ollama-url').value.trim();
+      if (openaiKey) apiKeys.openai = openaiKey;
+      if (geminiKey) apiKeys.gemini = geminiKey;
+      apiKeys.ollamaBaseUrl = ollamaUrl; // not secret; sending '' intentionally clears it
+      patch.apiKeys = apiKeys;
+
+      try {
+        await IsynqStorage.updateAdminConfig(patch);
+        alert('System config saved.');
+        await loadConfig();
+      } catch (err) {
+        alert(err.message || 'Failed to save system config');
+      }
+    }
+
+    async function loadUsers() {
+      const body = document.getElementById('users-table-body');
+      body.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--color-text-tertiary);">Loading...</td></tr>`;
+      const search = document.getElementById('user-search-input').value.trim();
+      try {
+        const res = await IsynqStorage.getAdminUsers({ search, page: 1, pageSize: 50 });
+        allUsers = res.users;
+        document.getElementById('users-showing-text').textContent = `Showing 1-${allUsers.length} of ${res.total} users`;
+
+        if (!allUsers.length) {
+          body.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--color-text-tertiary);padding:32px;">No users found.</td></tr>`;
+          return;
+        }
+
+        body.innerHTML = allUsers.map(u => `
+          <tr>
+            <td>${u.name}</td>
+            <td>${u.email}</td>
+            <td>${u.plan}</td>
+            <td>${u.role}</td>
+            <td>${u.creditsRemaining}</td>
+            <td>${u.isDisabled ? '<span class="count-badge" style="color:var(--color-danger);">Disabled</span>' : 'Active'}</td>
+            <td><button class="btn btn-ghost btn-sm" onclick="editUser('${u.id}')">Edit</button></td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        body.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--color-danger);padding:32px;">${err.message || 'Failed to load users'}</td></tr>`;
+      }
+    }
+
+    function editUser(id) {
+      const u = allUsers.find(x => x.id === id);
+      if (!u) return;
+      currentEditUserId = id;
+      document.getElementById('um-role').value = u.role;
+      document.getElementById('um-plan').value = u.plan;
+      document.getElementById('um-disabled').checked = !!u.isDisabled;
+      document.getElementById('um-credit-delta').value = '';
+      document.getElementById('um-credit-reason').value = '';
+      document.getElementById('user-modal').style.display = 'flex';
+    }
+
+    function closeUserModal() {
+      document.getElementById('user-modal').style.display = 'none';
+      currentEditUserId = null;
+    }
+
+    async function saveUser() {
+      if (!currentEditUserId) return;
+      try {
+        await IsynqStorage.updateAdminUser(currentEditUserId, {
+          role: document.getElementById('um-role').value,
+          plan: document.getElementById('um-plan').value.trim(),
+          isDisabled: document.getElementById('um-disabled').checked
+        });
+        closeUserModal();
+        await loadUsers();
+      } catch (err) {
+        alert(err.message || 'Failed to update user');
+      }
+    }
+
+    async function applyCreditAdjustment() {
+      if (!currentEditUserId) return;
+      const delta = parseInt(document.getElementById('um-credit-delta').value, 10);
+      const reason = document.getElementById('um-credit-reason').value.trim();
+      if (!delta) { alert('Enter a non-zero credit delta'); return; }
+      if (!reason) { alert('Enter a reason for this adjustment'); return; }
+      try {
+        await IsynqStorage.adjustUserCredits(currentEditUserId, delta, reason);
+        alert('Credits adjusted.');
+        closeUserModal();
+        await loadUsers();
+      } catch (err) {
+        alert(err.message || 'Failed to adjust credits');
+      }
+    }
+
+    async function loadBilling() {
+      const txBody = document.getElementById('billing-transactions-body');
+      const ledgerBody = document.getElementById('billing-ledger-body');
+      txBody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--color-text-tertiary);">Loading...</td></tr>`;
+      ledgerBody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--color-text-tertiary);">Loading...</td></tr>`;
+
+      try {
+        const res = await IsynqStorage.getAdminBillingOverview({ page: 1, pageSize: 50 });
+
+        if (!res.transactions.length) {
+          txBody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--color-text-tertiary);padding:32px;">No transactions yet.</td></tr>`;
+        } else {
+          txBody.innerHTML = res.transactions.map(t => `
+            <tr>
+              <td>${new Date(t.createdAt).toLocaleString()}</td>
+              <td>${t.user?.name || t.userId}</td>
+              <td>${t.hours}</td>
+              <td>$${(t.amountCents / 100).toFixed(2)}</td>
+              <td><span class="count-badge">${t.status}</span></td>
+            </tr>
+          `).join('');
+        }
+
+        if (!res.ledgerEntries.length) {
+          ledgerBody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--color-text-tertiary);padding:32px;">No ledger entries yet.</td></tr>`;
+        } else {
+          ledgerBody.innerHTML = res.ledgerEntries.map(e => `
+            <tr>
+              <td>${new Date(e.createdAt).toLocaleString()}</td>
+              <td>${e.user?.name || e.userId}</td>
+              <td style="color:${e.delta >= 0 ? 'var(--color-success)' : 'var(--color-danger)'};font-weight:600;">${e.delta >= 0 ? '+' : ''}${e.delta}</td>
+              <td>${e.reason}</td>
+              <td>${e.balanceAfter}</td>
+            </tr>
+          `).join('');
+        }
+      } catch (err) {
+        txBody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--color-danger);padding:32px;">${err.message || 'Failed to load billing overview'}</td></tr>`;
+        ledgerBody.innerHTML = '';
+      }
+    }
+  </script>
+</body>
+
+</html>

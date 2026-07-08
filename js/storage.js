@@ -118,7 +118,8 @@ const IsynqStorage = {
       email: user.email,
       plan: user.plan || 'free',
       creditsRemaining: user.creditsRemaining ?? 5,
-      avatar: user.avatar
+      avatar: user.avatar,
+      role: user.role || 'user'
     });
     if (user.settings && typeof user.settings === 'object') {
       const local = IsynqStorage.get('user_settings') || {};
@@ -306,6 +307,49 @@ const IsynqStorage = {
 
   async deleteAssistant(id) {
     return this.fetchAPI(`/assistants/${id}`, { method: 'DELETE' });
+  },
+
+  // Admin (superadmin only — backend enforces via requireSuperAdmin middleware)
+  async getAdminConfig() {
+    return this.fetchAPI('/admin/config');
+  },
+
+  async updateAdminConfig(patch) {
+    return this.fetchAPI('/admin/config', {
+      method: 'PATCH',
+      body: JSON.stringify(patch)
+    });
+  },
+
+  async getAdminUsers({ search, page, pageSize } = {}) {
+    const params = new URLSearchParams();
+    if (search) params.set('search', search);
+    if (page) params.set('page', page);
+    if (pageSize) params.set('pageSize', pageSize);
+    const qs = params.toString();
+    return this.fetchAPI(`/admin/users${qs ? `?${qs}` : ''}`);
+  },
+
+  async updateAdminUser(id, patch) {
+    return this.fetchAPI(`/admin/users/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(patch)
+    });
+  },
+
+  async adjustUserCredits(id, delta, reason) {
+    return this.fetchAPI(`/admin/users/${id}/credits`, {
+      method: 'POST',
+      body: JSON.stringify({ delta, reason })
+    });
+  },
+
+  async getAdminBillingOverview({ page, pageSize } = {}) {
+    const params = new URLSearchParams();
+    if (page) params.set('page', page);
+    if (pageSize) params.set('pageSize', pageSize);
+    const qs = params.toString();
+    return this.fetchAPI(`/admin/billing/overview${qs ? `?${qs}` : ''}`);
   },
 
   // Account / Billing

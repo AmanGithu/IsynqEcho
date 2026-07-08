@@ -54,6 +54,12 @@ const IsynqSidebar = {
             `).join('')}
           </div>
 
+          ${user?.role === 'superadmin' ? `
+          <a href="admin.html" class="${activeKey === 'admin' ? 'active' : ''}">
+            <span class="icon">🛡️</span>Admin
+          </a>
+          ` : ''}
+
           <a href="../index.html#desktop-app">
             <span class="icon">⭳</span>Go Invisible
           </a>
