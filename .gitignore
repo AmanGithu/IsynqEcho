@@ -5,3 +5,6 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Claude Code context file
+CLAUDE.md
