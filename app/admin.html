@@ -44,13 +44,58 @@
       <h2 style="margin-bottom:20px;">Admin</h2>
 
       <div class="account-tabs">
-        <div class="account-tab active" id="tab-config" onclick="switchAdminTab('config')">System Config</div>
+        <div class="account-tab active" id="tab-overview" onclick="switchAdminTab('overview')">Overview</div>
+        <div class="account-tab" id="tab-config" onclick="switchAdminTab('config')">System Config</div>
         <div class="account-tab" id="tab-users" onclick="switchAdminTab('users')">Users</div>
         <div class="account-tab" id="tab-billing" onclick="switchAdminTab('billing')">Billing Overview</div>
+        <div class="account-tab" id="tab-audit" onclick="switchAdminTab('audit')">Audit Log</div>
+      </div>
+
+      <!-- OVERVIEW -->
+      <div class="account-panel active" id="panel-overview">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:16px;margin-bottom:24px;">
+          <div class="card" style="text-align:center;">
+            <div style="font-size:1.75rem;font-weight:800;" id="kpi-users">—</div>
+            <div style="font-size:0.8125rem;color:var(--color-text-tertiary);">Total users</div>
+          </div>
+          <div class="card" style="text-align:center;">
+            <div style="font-size:1.75rem;font-weight:800;" id="kpi-sessions-today">—</div>
+            <div style="font-size:0.8125rem;color:var(--color-text-tertiary);">Sessions today</div>
+          </div>
+          <div class="card" style="text-align:center;">
+            <div style="font-size:1.75rem;font-weight:800;" id="kpi-sessions-total">—</div>
+            <div style="font-size:0.8125rem;color:var(--color-text-tertiary);">Sessions total</div>
+          </div>
+          <div class="card" style="text-align:center;">
+            <div style="font-size:1.75rem;font-weight:800;" id="kpi-credits-today">—</div>
+            <div style="font-size:0.8125rem;color:var(--color-text-tertiary);">Credits used today</div>
+          </div>
+          <div class="card" style="text-align:center;">
+            <div style="font-size:1.75rem;font-weight:800;" id="kpi-revenue">—</div>
+            <div style="font-size:0.8125rem;color:var(--color-text-tertiary);">Revenue</div>
+          </div>
+          <div class="card" style="text-align:center;">
+            <div style="font-size:1.75rem;font-weight:800;" id="kpi-ai-errors">—</div>
+            <div style="font-size:0.8125rem;color:var(--color-text-tertiary);">Recent AI errors</div>
+          </div>
+        </div>
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <h4 style="margin:0;">Recent AI Errors</h4>
+            <button class="btn btn-ghost btn-sm" onclick="loadOverview()">Refresh</button>
+          </div>
+          <p style="font-size:0.8125rem;color:var(--color-text-tertiary);margin-bottom:12px;">Provider failures since the backend last restarted (rate limits, timeouts, bad models). Permanent history lives in the server logs.</p>
+          <table class="data-table">
+            <thead>
+              <tr><th style="width:170px;">Time</th><th style="width:90px;">Provider</th><th style="width:110px;">Operation</th><th>Error</th></tr>
+            </thead>
+            <tbody id="ai-errors-body"></tbody>
+          </table>
+        </div>
       </div>
 
       <!-- SYSTEM CONFIG -->
-      <div class="account-panel active" id="panel-config">
+      <div class="account-panel" id="panel-config">
         <div style="display:grid;gap:24px;max-width:600px;">
           <div class="card">
             <h4 style="margin-bottom:16px;">🤖 AI Answers</h4>
@@ -107,15 +152,27 @@
             <p style="font-size:0.8125rem;color:var(--color-text-tertiary);margin-bottom:16px;">Server-side keys used when a user hasn't set their own. Saved keys are never shown in full — leave a field blank to keep the existing key.</p>
             <div class="form-group">
               <label class="form-label">OpenAI API key <span id="cfg-key-openai-status" style="font-weight:400;color:var(--color-text-tertiary);"></span></label>
-              <input class="form-input" type="password" id="cfg-key-openai" autocomplete="off" placeholder="sk-...">
+              <div style="display:flex;gap:8px;">
+                <input class="form-input" type="password" id="cfg-key-openai" autocomplete="off" placeholder="sk-..." style="flex:1;">
+                <button type="button" class="btn btn-ghost btn-sm" id="test-btn-openai" onclick="testKey('openai')">Test</button>
+              </div>
+              <span id="test-result-openai" style="font-size:0.8125rem;"></span>
             </div>
             <div class="form-group">
               <label class="form-label">Gemini API key <span id="cfg-key-gemini-status" style="font-weight:400;color:var(--color-text-tertiary);"></span></label>
-              <input class="form-input" type="password" id="cfg-key-gemini" autocomplete="off" placeholder="AIza...">
+              <div style="display:flex;gap:8px;">
+                <input class="form-input" type="password" id="cfg-key-gemini" autocomplete="off" placeholder="AIza..." style="flex:1;">
+                <button type="button" class="btn btn-ghost btn-sm" id="test-btn-gemini" onclick="testKey('gemini')">Test</button>
+              </div>
+              <span id="test-result-gemini" style="font-size:0.8125rem;"></span>
             </div>
             <div class="form-group">
               <label class="form-label">Ollama base URL</label>
-              <input class="form-input" type="url" id="cfg-key-ollama-url" placeholder="http://localhost:11434">
+              <div style="display:flex;gap:8px;">
+                <input class="form-input" type="url" id="cfg-key-ollama-url" placeholder="http://localhost:11434" style="flex:1;">
+                <button type="button" class="btn btn-ghost btn-sm" id="test-btn-ollama" onclick="testKey('ollama')">Test</button>
+              </div>
+              <span id="test-result-ollama" style="font-size:0.8125rem;"></span>
             </div>
           </div>
           <div class="card">
@@ -188,6 +245,23 @@
           </table>
         </div>
       </div>
+
+      <!-- AUDIT LOG -->
+      <div class="account-panel" id="panel-audit">
+        <div class="card">
+          <h4 style="margin-bottom:16px;">Admin Audit Log</h4>
+          <p style="font-size:0.8125rem;color:var(--color-text-tertiary);margin-bottom:12px;">Every admin action: config changes, user edits, credit adjustments. Secret values are never recorded.</p>
+          <table class="data-table">
+            <thead>
+              <tr><th style="width:170px;">Time</th><th style="width:180px;">Admin</th><th style="width:170px;">Action</th><th>Details</th></tr>
+            </thead>
+            <tbody id="audit-log-body"></tbody>
+          </table>
+          <div class="data-table-footer">
+            <span id="audit-showing-text">Showing 0 of 0 entries</span>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
   </div>
@@ -223,9 +297,9 @@
     </div>
   </div>
 
-  <script src="../js/storage.js?v=20260709a"></script>
-  <script src="../js/auth.js?v=20260709a"></script>
-  <script src="../js/sidebar.js?v=20260709a"></script>
+  <script src="../js/storage.js?v=20260709b"></script>
+  <script src="../js/auth.js?v=20260709b"></script>
+  <script src="../js/sidebar.js?v=20260709b"></script>
   <script>
     let allUsers = [];
     let currentEditUserId = null;
@@ -238,16 +312,98 @@
         return;
       }
       IsynqSidebar.render('admin');
-      await loadConfig();
+      await loadOverview();
     })();
 
     function switchAdminTab(tab) {
-      ['config', 'users', 'billing'].forEach(t => {
+      ['overview', 'config', 'users', 'billing', 'audit'].forEach(t => {
         document.getElementById('tab-' + t).classList.toggle('active', t === tab);
         document.getElementById('panel-' + t).classList.toggle('active', t === tab);
       });
+      if (tab === 'overview') loadOverview();
+      if (tab === 'config') loadConfig();
       if (tab === 'users') loadUsers();
       if (tab === 'billing') loadBilling();
+      if (tab === 'audit') loadAuditLogs();
+    }
+
+    async function loadOverview() {
+      try {
+        const [overview, errRes] = await Promise.all([
+          IsynqStorage.getAdminOverview(),
+          IsynqStorage.getAdminAiErrors()
+        ]);
+
+        document.getElementById('kpi-users').textContent = overview.totalUsers;
+        document.getElementById('kpi-sessions-today').textContent = overview.sessionsToday;
+        document.getElementById('kpi-sessions-total').textContent = overview.totalSessions;
+        document.getElementById('kpi-credits-today').textContent = overview.creditsConsumedToday;
+        document.getElementById('kpi-revenue').textContent = `$${(overview.revenueCents / 100).toFixed(2)}`;
+        document.getElementById('kpi-ai-errors').textContent = overview.aiErrorCount;
+
+        const body = document.getElementById('ai-errors-body');
+        const errors = errRes.errors || [];
+        if (!errors.length) {
+          body.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--color-text-tertiary);padding:32px;">No AI errors since last restart. 🎉</td></tr>`;
+          return;
+        }
+        body.innerHTML = errors.map(e => `
+          <tr>
+            <td>${new Date(e.timestamp).toLocaleString()}</td>
+            <td>${e.provider}${e.model ? `<br><span style="font-size:0.75rem;color:var(--color-text-tertiary);">${e.model}</span>` : ''}</td>
+            <td>${e.operation}</td>
+            <td style="color:var(--color-danger);">${e.message}</td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        alert(err.message || 'Failed to load overview');
+      }
+    }
+
+    async function loadAuditLogs() {
+      const body = document.getElementById('audit-log-body');
+      body.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:32px;color:var(--color-text-tertiary);">Loading...</td></tr>`;
+      try {
+        const res = await IsynqStorage.getAdminAuditLogs({ page: 1, pageSize: 50 });
+        document.getElementById('audit-showing-text').textContent = `Showing 1-${res.logs.length} of ${res.total} entries`;
+        if (!res.logs.length) {
+          body.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--color-text-tertiary);padding:32px;">No admin actions recorded yet.</td></tr>`;
+          return;
+        }
+        body.innerHTML = res.logs.map(l => `
+          <tr>
+            <td>${new Date(l.createdAt).toLocaleString()}</td>
+            <td>${l.admin?.name || l.adminId}<br><span style="font-size:0.75rem;color:var(--color-text-tertiary);">${l.admin?.email || ''}</span></td>
+            <td>${l.action.replace(/_/g, ' ')}</td>
+            <td style="font-size:0.8125rem;font-family:monospace;word-break:break-all;">${l.details ? JSON.stringify(l.details) : ''}${l.targetId ? `<br><span style="color:var(--color-text-tertiary);">target: ${l.targetId}</span>` : ''}</td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        body.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--color-danger);padding:32px;">${err.message || 'Failed to load audit log'}</td></tr>`;
+      }
+    }
+
+    async function testKey(provider) {
+      const btn = document.getElementById(`test-btn-${provider}`);
+      const result = document.getElementById(`test-result-${provider}`);
+      const typedValue = provider === 'ollama'
+        ? document.getElementById('cfg-key-ollama-url').value.trim()
+        : document.getElementById(`cfg-key-${provider}`).value.trim();
+
+      btn.disabled = true;
+      result.style.color = 'var(--color-text-tertiary)';
+      result.textContent = 'Testing…';
+      try {
+        // Tests the typed value if present, otherwise the saved/env credential.
+        const res = await IsynqStorage.testAdminProviderKey(provider, typedValue);
+        result.style.color = res.ok ? 'var(--color-success)' : 'var(--color-danger)';
+        result.textContent = `${res.ok ? '✓' : '✗'} ${res.message}`;
+      } catch (err) {
+        result.style.color = 'var(--color-danger)';
+        result.textContent = `✗ ${err.message || 'Test failed'}`;
+      } finally {
+        btn.disabled = false;
+      }
     }
 
     async function loadConfig() {

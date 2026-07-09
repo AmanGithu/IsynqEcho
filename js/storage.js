@@ -352,6 +352,29 @@ const IsynqStorage = {
     return this.fetchAPI(`/admin/billing/overview${qs ? `?${qs}` : ''}`);
   },
 
+  async getAdminOverview() {
+    return this.fetchAPI('/admin/overview');
+  },
+
+  async getAdminAiErrors() {
+    return this.fetchAPI('/admin/ai-errors');
+  },
+
+  async getAdminAuditLogs({ page, pageSize } = {}) {
+    const params = new URLSearchParams();
+    if (page) params.set('page', page);
+    if (pageSize) params.set('pageSize', pageSize);
+    const qs = params.toString();
+    return this.fetchAPI(`/admin/audit-logs${qs ? `?${qs}` : ''}`);
+  },
+
+  async testAdminProviderKey(provider, apiKey) {
+    return this.fetchAPI('/admin/test-key', {
+      method: 'POST',
+      body: JSON.stringify({ provider, apiKey: apiKey || undefined })
+    });
+  },
+
   // Account / Billing
   async updateProfile({ firstName, lastName }) {
     return this.fetchAPI('/users/me', {
