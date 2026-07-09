@@ -124,6 +124,116 @@
 
     .info-row .label { color: var(--color-text-tertiary); }
     .info-row .value { font-weight: 600; text-align: right; }
+
+    /* Chat-style Q&A bubbles */
+    .qa-chat-list {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .qa-chat-item {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .bubble-question {
+      max-width: 80%;
+      align-self: flex-start;
+      padding: 12px 16px;
+      background: var(--color-bg-light, #F8FAFC);
+      border: 1px solid var(--color-border-light);
+      border-radius: 12px 12px 12px 2px;
+      font-size: 0.9375rem;
+      line-height: 1.5;
+      color: var(--color-text-primary);
+      font-weight: 600;
+    }
+
+    .bubble-question .bubble-meta {
+      font-size: 0.72rem;
+      font-weight: 400;
+      color: var(--color-text-tertiary);
+      margin-bottom: 4px;
+    }
+
+    .bubble-answer-wrap {
+      align-self: flex-end;
+      max-width: 90%;
+      width: 90%;
+    }
+
+    .bubble-answer-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      padding: 10px 16px;
+      background: var(--color-primary-lighter, #EEF2FF);
+      border: 1px solid rgba(99, 102, 241, 0.2);
+      border-radius: 12px 12px 2px 12px;
+      user-select: none;
+      transition: background 0.15s;
+    }
+
+    .bubble-answer-header:hover {
+      background: rgba(99, 102, 241, 0.12);
+    }
+
+    .bubble-answer-header.collapsed {
+      border-radius: 12px;
+    }
+
+    .bubble-answer-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--color-primary, #6366F1);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .bubble-chevron {
+      font-size: 0.8rem;
+      color: var(--color-text-tertiary);
+      transition: transform 0.2s ease;
+      line-height: 1;
+    }
+
+    .bubble-answer-header.collapsed .bubble-chevron {
+      transform: rotate(-90deg);
+    }
+
+    .bubble-answer-body {
+      padding: 14px 16px;
+      background: var(--color-primary-lighter, #EEF2FF);
+      border: 1px solid rgba(99, 102, 241, 0.2);
+      border-top: none;
+      border-radius: 0 0 12px 12px;
+      font-size: 0.9375rem;
+      color: var(--color-text-secondary);
+      line-height: 1.65;
+      overflow: hidden;
+    }
+
+    .bubble-answer-body.hidden { display: none; }
+
+    .bubble-answer-body h1,
+    .bubble-answer-body h2,
+    .bubble-answer-body h3 { font-size: 1rem; font-weight: 700; margin: 12px 0 4px; color: var(--color-text-primary); }
+    .bubble-answer-body p { margin: 0 0 8px; }
+    .bubble-answer-body p:last-child { margin-bottom: 0; }
+    .bubble-answer-body ul { padding-left: 20px; margin: 6px 0; }
+    .bubble-answer-body li { margin: 3px 0; }
+    .bubble-answer-body code {
+      font-family: monospace;
+      background: rgba(0,0,0,0.06);
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 0.875em;
+    }
+    .bubble-answer-body strong { color: var(--color-primary); font-weight: 600; }
   </style>
 </head>
 
@@ -139,7 +249,7 @@
         <div class="data-table-card">
           <div class="session-tabs">
             <div class="session-tab active" id="tab-transcript" onclick="switchTab('transcript')">Transcript</div>
-            <div class="session-tab" id="tab-responses" onclick="switchTab('responses')">AI Responses</div>
+            <div class="session-tab" id="tab-responses" onclick="switchTab('responses')">Q &amp; A</div>
           </div>
           <div class="session-content-toolbar">
             <button class="btn btn-ghost btn-sm" onclick="copyTranscript()">📋 Copy transcript</button>
@@ -221,14 +331,26 @@
       if (!qaPairs.length) {
         responsesPanel.innerHTML = `<div class="empty-state" style="padding:48px;">No AI responses recorded for this session.</div>`;
       } else {
-        responsesPanel.innerHTML = qaPairs.map(t => `
-          <div class="qa-pair">
-            <div class="qa-question">${new Date(t.timestamp).toLocaleTimeString()}</div>
-            <div class="qa-question-text">${escapeHtml(t.text)}</div>
-            <div class="qa-response-label">AI Response</div>
-            <div class="qa-response-text">${escapeHtml(t.response)}</div>
-          </div>
-        `).join('');
+        const lastIdx = qaPairs.length - 1;
+        responsesPanel.innerHTML = `<div class="qa-chat-list">${qaPairs.map((t, idx) => {
+          const collapsed = idx < lastIdx ? 'collapsed' : '';
+          const hidden    = idx < lastIdx ? 'hidden' : '';
+          return `
+            <div class="qa-chat-item">
+              <div class="bubble-question">
+                <div class="bubble-meta">${new Date(t.timestamp).toLocaleTimeString()}</div>
+                ${escapeHtml(t.text)}
+              </div>
+              <div class="bubble-answer-wrap">
+                <div class="bubble-answer-header ${collapsed}" onclick="toggleAnswer(this)">
+                  <span class="bubble-answer-label">AI Response</span>
+                  <span class="bubble-chevron">▾</span>
+                </div>
+                <div class="bubble-answer-body ${hidden}">${renderMarkdown(t.response)}</div>
+              </div>
+            </div>
+          `;
+        }).join('')}</div>`;
       }
     }
 
@@ -256,6 +378,47 @@
       const div = document.createElement('div');
       div.textContent = str || '';
       return div.innerHTML;
+    }
+
+    function renderMarkdown(raw) {
+      if (!raw) return '';
+      const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      const inline = s => s
+        .replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
+        .replace(/`([^`\n]+)`/g, '<code>$1</code>');
+
+      const lines = esc(raw).split('\n');
+      const out = [];
+      let ulOpen = false;
+
+      for (const line of lines) {
+        const t = line.trim();
+        if (!t) {
+          if (ulOpen) { out.push('</ul>'); ulOpen = false; }
+          continue;
+        }
+        const hm = t.match(/^(#{1,3}) (.+)/);
+        if (hm) {
+          if (ulOpen) { out.push('</ul>'); ulOpen = false; }
+          out.push(`<h${hm[1].length}>${inline(hm[2])}</h${hm[1].length}>`);
+          continue;
+        }
+        const lm = t.match(/^[-*] (.+)/) || t.match(/^\d+\.\s(.+)/);
+        if (lm) {
+          if (!ulOpen) { out.push('<ul>'); ulOpen = true; }
+          out.push(`<li>${inline(lm[1])}</li>`);
+          continue;
+        }
+        if (ulOpen) { out.push('</ul>'); ulOpen = false; }
+        out.push(`<p>${inline(t)}</p>`);
+      }
+      if (ulOpen) out.push('</ul>');
+      return out.join('\n');
+    }
+
+    function toggleAnswer(header) {
+      header.classList.toggle('collapsed');
+      header.nextElementSibling.classList.toggle('hidden');
     }
 
     function handleLogout() {
