@@ -630,6 +630,152 @@ const IsynqStorage = {
     }
   },
 
+  // Resumes
+  async getResumes() {
+    try {
+      return await this.fetchAPI('/resumes');
+    } catch (err) {
+      IsynqLogger.warn('Failed to fetch resumes:', err);
+      return [];
+    }
+  },
+
+  async getResume(id) {
+    return this.fetchAPI(`/resumes/${id}`);
+  },
+
+  async createResume() {
+    return this.fetchAPI('/resumes', { method: 'POST' });
+  },
+
+  async updateResume(id, patch) {
+    return this.fetchAPI(`/resumes/${id}`, { method: 'PATCH', body: JSON.stringify(patch) });
+  },
+
+  async renameResume(id, title) {
+    return this.fetchAPI(`/resumes/${id}/rename`, { method: 'PATCH', body: JSON.stringify({ title }) });
+  },
+
+  async deleteResume(id) {
+    return this.fetchAPI(`/resumes/${id}`, { method: 'DELETE' });
+  },
+
+  async duplicateResume(id) {
+    return this.fetchAPI(`/resumes/${id}/duplicate`, { method: 'POST' });
+  },
+
+  async importResumeFile(file, source) {
+    const fileBase64 = await this._fileToBase64(file);
+    return this.fetchAPI('/resumes/import', {
+      method: 'POST',
+      body: JSON.stringify({ fileBase64, fileName: file.name, mimeType: file.type, source })
+    });
+  },
+
+  _fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(file);
+    });
+  },
+
+  async getReadiness(resumeId) {
+    return this.fetchAPI(`/resumes/${resumeId}/readiness`);
+  },
+
+  async matchAgainstJd(resumeId, jd) {
+    return this.fetchAPI(`/resumes/${resumeId}/match`, { method: 'POST', body: JSON.stringify({ jd }) });
+  },
+
+  async getTailorContext(resumeId) {
+    return this.fetchAPI(`/resumes/${resumeId}/tailor-context`);
+  },
+
+  async runTailor(resumeId, jd, intensity) {
+    return this.fetchAPI(`/resumes/${resumeId}/tailor`, { method: 'POST', body: JSON.stringify({ jd, intensity }) });
+  },
+
+  async applyTailoredVersion(resumeId, payload) {
+    return this.fetchAPI(`/resumes/${resumeId}/tailor/apply`, { method: 'POST', body: JSON.stringify(payload) });
+  },
+
+  async getResumeVersion(resumeId, versionId) {
+    return this.fetchAPI(`/resumes/${resumeId}/versions/${versionId}`);
+  },
+
+  async updateResumeVersion(resumeId, versionId, patch) {
+    return this.fetchAPI(`/resumes/${resumeId}/versions/${versionId}`, { method: 'PATCH', body: JSON.stringify(patch) });
+  },
+
+  async duplicateResumeVersion(resumeId, versionId) {
+    return this.fetchAPI(`/resumes/${resumeId}/versions/${versionId}/duplicate`, { method: 'POST' });
+  },
+
+  async deleteResumeVersion(resumeId, versionId) {
+    return this.fetchAPI(`/resumes/${resumeId}/versions/${versionId}`, { method: 'DELETE' });
+  },
+
+  async rewriteBullet(resumeId, bullet, tone) {
+    return this.fetchAPI(`/resumes/${resumeId}/ai/rewrite-bullet`, { method: 'POST', body: JSON.stringify({ bullet, tone }) });
+  },
+
+  async generateSummary(resumeId, resume, jd) {
+    return this.fetchAPI(`/resumes/${resumeId}/ai/generate-summary`, { method: 'POST', body: JSON.stringify({ resume, jd }) });
+  },
+
+  async getCoverLetter(resumeId) {
+    return this.fetchAPI(`/resumes/${resumeId}/cover-letter`);
+  },
+
+  async generateCoverLetter(resumeId, input) {
+    return this.fetchAPI(`/resumes/${resumeId}/cover-letter/generate`, { method: 'POST', body: JSON.stringify(input) });
+  },
+
+  async saveCoverLetter(resumeId, rec) {
+    return this.fetchAPI(`/resumes/${resumeId}/cover-letter`, { method: 'PUT', body: JSON.stringify(rec) });
+  },
+
+  async getInterviewPrep(resumeId) {
+    return this.fetchAPI(`/resumes/${resumeId}/interview-prep`);
+  },
+
+  async generateInterviewPrep(resumeId, input) {
+    return this.fetchAPI(`/resumes/${resumeId}/interview-prep/generate`, { method: 'POST', body: JSON.stringify(input) });
+  },
+
+  /** Downloads a binary export (DOCX) endpoint via an authenticated fetch,
+      since fetchAPI() assumes a JSON body. */
+  async downloadFile(endpoint, fallbackName) {
+    const session = this.get('session');
+    const headers = {};
+    if (session?.token) headers['Authorization'] = `Bearer ${session.token}`;
+    let response;
+    try {
+      response = await fetch(`${this.API_BASE_URL}${endpoint}`, { headers });
+    } catch (err) {
+      throw this.wrapFetchError(err);
+    }
+    if (!response.ok) {
+      let message = 'Export failed';
+      try { message = (await response.json()).message || message; } catch { /* not JSON */ }
+      throw new Error(message);
+    }
+    const blob = await response.blob();
+    const disposition = response.headers.get('Content-Disposition') || '';
+    const match = disposition.match(/filename="([^"]+)"/);
+    const fileName = match ? match[1] : fallbackName;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  },
+
   async clearAllData() {
     const db = await this.openDB();
     const stores = ['documents', 'meetings', 'responses'];

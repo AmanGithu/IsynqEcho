@@ -1,0 +1,149 @@
+/* ============================================================
+   ATS-Safe Resume Templates
+   These render the ACTUAL resume content (thumbnail + full preview).
+   Rules enforced on purpose: single column, no sidebars, no tables,
+   no text boxes, web-safe fonts only, real selectable text, standard
+   section headings, black on white. This stylesheet is intentionally
+   plain — do not "design" it.
+   Ported from MindSync's resume-templates.css.
+   ============================================================ */
+
+.resume {
+  background: #ffffff;
+  color: #1a1a1a;
+  width: 100%;
+  aspect-ratio: 210 / 297;
+  overflow: hidden;
+  position: relative;
+}
+.resume * { box-sizing: border-box; }
+.resume p { margin: 0; }
+.resume ul { margin: 0; padding: 0; list-style: none; }
+.resume .r-name { font-weight: 700; }
+.resume .r-contact { color: #333; }
+.resume .r-contact span { white-space: nowrap; }
+.resume .r-summary { color: #1a1a1a; }
+.resume .r-role { font-weight: 700; }
+.resume .r-company { font-weight: 400; }
+.resume .r-meta { color: #444; }
+.resume .r-bullet { position: relative; }
+.resume .r-skills b { font-weight: 700; }
+.resume .r-skills > div { margin-bottom: 2px; }
+
+/* ---------------- Template A — "Classic" (Georgia serif, centered header) ---------------- */
+.resume--classic { font-family: Georgia, "Times New Roman", Times, serif; font-size: 10.5px; line-height: 1.42; padding: 5.5% 8%; }
+.resume--classic .r-head { text-align: center; padding-bottom: 9px; border-bottom: 1.5px solid #1a1a1a; margin-bottom: 11px; }
+.resume--classic .r-name { font-size: 24px; letter-spacing: 0.5px; }
+.resume--classic .r-target { font-size: 11.5px; color: #333; margin-top: 3px; font-style: italic; }
+.resume--classic .r-contact { font-size: 10px; margin-top: 7px; }
+.resume--classic .r-contact span + span::before { content: "  •  "; color: #999; }
+.resume--classic .r-section { margin-top: 9px; }
+.resume--classic .r-h { font-size: 12px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; border-bottom: 0.75px solid #999; padding-bottom: 2px; margin-bottom: 5px; }
+.resume--classic .r-summary { line-height: 1.45; }
+.resume--classic .r-job { margin-bottom: 6px; }
+.resume--classic .r-job-top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.resume--classic .r-role { font-size: 11.5px; }
+.resume--classic .r-meta { font-size: 10px; font-style: italic; white-space: nowrap; }
+.resume--classic .r-sub { font-size: 10.5px; margin-bottom: 3px; }
+.resume--classic ul.r-bullets { margin-top: 2px; }
+.resume--classic .r-bullet { padding-left: 14px; margin-bottom: 1.5px; }
+.resume--classic .r-bullet::before { content: "•"; position: absolute; left: 2px; }
+.resume--classic .r-skills { line-height: 1.6; }
+
+/* ---------------- Template B — "Modern" (Arial, left header, rule lines) ---------------- */
+.resume--modern { font-family: Arial, Helvetica, "Liberation Sans", sans-serif; font-size: 10.5px; line-height: 1.45; padding: 7% 8%; color: #1a1a1a; }
+.resume--modern .r-head { padding-bottom: 11px; border-bottom: 2px solid #1a1a1a; margin-bottom: 14px; }
+.resume--modern .r-name { font-size: 23px; letter-spacing: -0.3px; }
+.resume--modern .r-target { font-size: 12px; color: #333; margin-top: 2px; font-weight: 700; }
+.resume--modern .r-contact { font-size: 10px; margin-top: 8px; }
+.resume--modern .r-contact span + span::before { content: "   |   "; color: #aaa; }
+.resume--modern .r-section { margin-top: 15px; }
+.resume--modern .r-h { font-size: 10.5px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #1a1a1a; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid #ccc; }
+.resume--modern .r-job { margin-bottom: 10px; }
+.resume--modern .r-job-top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.resume--modern .r-role { font-size: 11.5px; }
+.resume--modern .r-meta { font-size: 10px; color: #555; white-space: nowrap; }
+.resume--modern .r-sub { font-size: 10.5px; font-weight: 700; color: #333; margin-bottom: 3px; }
+.resume--modern ul.r-bullets { margin-top: 3px; }
+.resume--modern .r-bullet { padding-left: 14px; margin-bottom: 3px; }
+.resume--modern .r-bullet::before { content: "–"; position: absolute; left: 2px; }
+.resume--modern .r-skills { line-height: 1.65; }
+
+/* ---------------- Template C — "Compact" (Calibri-like, tighter) ---------------- */
+.resume--compact { font-family: Calibri, Carlito, "Segoe UI", Arial, sans-serif; font-size: 10.5px; line-height: 1.4; padding: 6% 7%; color: #1a1a1a; }
+.resume--compact .r-head { margin-bottom: 11px; }
+.resume--compact .r-name { font-size: 21px; }
+.resume--compact .r-head-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; border-bottom: 1.5px solid #1a1a1a; padding-bottom: 7px; }
+.resume--compact .r-target { font-size: 11px; color: #444; font-weight: 600; }
+.resume--compact .r-contact { font-size: 9.5px; margin-top: 6px; color: #333; }
+.resume--compact .r-contact span + span::before { content: "  ·  "; color: #999; }
+.resume--compact .r-section { margin-top: 11px; }
+.resume--compact .r-h { font-size: 10px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: #2a2a2a; margin-bottom: 5px; }
+.resume--compact .r-job { margin-bottom: 7px; }
+.resume--compact .r-job-top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.resume--compact .r-role { font-size: 11px; }
+.resume--compact .r-meta { font-size: 9.5px; color: #555; white-space: nowrap; }
+.resume--compact .r-sub { font-size: 10px; color: #333; margin-bottom: 2px; }
+.resume--compact ul.r-bullets { margin-top: 1px; }
+.resume--compact .r-bullet { padding-left: 12px; margin-bottom: 2px; }
+.resume--compact .r-bullet::before { content: "•"; position: absolute; left: 2px; }
+.resume--compact .r-skills { line-height: 1.55; }
+
+/* ---------------- Template D — "Executive" (Georgia serif, navy, double rule) ---------------- */
+.resume--executive { font-family: Georgia, "Times New Roman", Times, serif; font-size: 10.5px; line-height: 1.5; padding: 7% 8.5%; color: #1a1a1a; }
+.resume--executive .r-head { text-align: center; padding-bottom: 12px; border-bottom: 3px double #1f3a5f; margin-bottom: 15px; }
+.resume--executive .r-name { font-size: 25px; letter-spacing: 1.5px; color: #1f3a5f; text-transform: uppercase; }
+.resume--executive .r-target { font-size: 10.5px; color: #444; margin-top: 5px; letter-spacing: 2px; text-transform: uppercase; }
+.resume--executive .r-contact { font-size: 10px; margin-top: 8px; color: #333; }
+.resume--executive .r-contact span + span::before { content: "  •  "; color: #1f3a5f; }
+.resume--executive .r-section { margin-top: 14px; }
+.resume--executive .r-h { font-size: 11.5px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #1f3a5f; border-bottom: 0.75px solid #1f3a5f; padding-bottom: 3px; margin-bottom: 8px; }
+.resume--executive .r-job { margin-bottom: 9px; }
+.resume--executive .r-job-top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.resume--executive .r-role { font-size: 11.5px; }
+.resume--executive .r-meta { font-size: 10px; font-style: italic; color: #555; white-space: nowrap; }
+.resume--executive .r-sub { font-size: 10.5px; font-style: italic; color: #333; margin-bottom: 3px; }
+.resume--executive ul.r-bullets { margin-top: 2px; }
+.resume--executive .r-bullet { padding-left: 14px; margin-bottom: 2.5px; }
+.resume--executive .r-bullet::before { content: "›"; position: absolute; left: 3px; color: #1f3a5f; font-weight: 700; }
+.resume--executive .r-skills { line-height: 1.6; }
+
+/* ---------------- Template E — "Elegant" (light sans, teal accent, left rule) ---------------- */
+.resume--elegant { font-family: "Helvetica Neue", Arial, "Liberation Sans", sans-serif; font-size: 10.5px; line-height: 1.5; padding: 7.5% 8.5%; color: #222; }
+.resume--elegant .r-head { padding-bottom: 12px; margin-bottom: 16px; border-bottom: 1px solid #ddd; }
+.resume--elegant .r-name { font-size: 26px; font-weight: 300; letter-spacing: 1px; color: #111; }
+.resume--elegant .r-target { font-size: 11.5px; color: #0f6f6a; margin-top: 3px; font-weight: 600; letter-spacing: 0.5px; }
+.resume--elegant .r-contact { font-size: 10px; margin-top: 9px; color: #555; }
+.resume--elegant .r-contact span + span::before { content: "   ·   "; color: #0f6f6a; }
+.resume--elegant .r-section { margin-top: 16px; }
+.resume--elegant .r-h { font-size: 11px; font-weight: 700; letter-spacing: 1.8px; text-transform: uppercase; color: #0f6f6a; margin-bottom: 8px; padding-left: 9px; border-left: 3px solid #0f6f6a; }
+.resume--elegant .r-job { margin-bottom: 11px; }
+.resume--elegant .r-job-top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.resume--elegant .r-role { font-size: 11.5px; font-weight: 700; }
+.resume--elegant .r-meta { font-size: 10px; color: #888; white-space: nowrap; }
+.resume--elegant .r-sub { font-size: 10.5px; color: #0f6f6a; margin-bottom: 4px; }
+.resume--elegant ul.r-bullets { margin-top: 3px; }
+.resume--elegant .r-bullet { padding-left: 14px; margin-bottom: 3px; }
+.resume--elegant .r-bullet::before { content: "–"; position: absolute; left: 2px; color: #0f6f6a; }
+.resume--elegant .r-skills { line-height: 1.7; }
+
+/* ---------------- Template F — "Developer" (mono accents, slate, row header) ---------------- */
+.resume--developer { font-family: "Helvetica Neue", Arial, sans-serif; font-size: 10.5px; line-height: 1.45; padding: 6.5% 7.5%; color: #1a1a1a; }
+.resume--developer .r-head { margin-bottom: 13px; }
+.resume--developer .r-head-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; border-bottom: 2px solid #3b4a5a; padding-bottom: 8px; }
+.resume--developer .r-name { font-size: 22px; color: #3b4a5a; }
+.resume--developer .r-target { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 10px; color: #0a7d5a; font-weight: 500; }
+.resume--developer .r-contact { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 9px; margin-top: 7px; color: #555; }
+.resume--developer .r-contact span + span::before { content: "  /  "; color: #0a7d5a; }
+.resume--developer .r-section { margin-top: 12px; }
+.resume--developer .r-h { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 10px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; color: #3b4a5a; margin-bottom: 6px; }
+.resume--developer .r-h::before { content: "# "; color: #0a7d5a; }
+.resume--developer .r-job { margin-bottom: 8px; }
+.resume--developer .r-job-top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.resume--developer .r-role { font-size: 11px; }
+.resume--developer .r-meta { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 9px; color: #666; white-space: nowrap; }
+.resume--developer .r-sub { font-size: 10px; color: #0a7d5a; margin-bottom: 2px; }
+.resume--developer ul.r-bullets { margin-top: 2px; }
+.resume--developer .r-bullet { padding-left: 13px; margin-bottom: 2.5px; }
+.resume--developer .r-bullet::before { content: "▹"; position: absolute; left: 2px; color: #0a7d5a; }
+.resume--developer .r-skills { line-height: 1.6; }

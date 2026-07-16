@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resume Editor — Isynq</title>
+  <link rel="stylesheet" href="../css/design-system.css">
+  <link rel="stylesheet" href="../css/components.css">
+  <link rel="stylesheet" href="../css/dashboard.css">
+  <link rel="stylesheet" href="../css/resume-templates.css">
+  <link rel="stylesheet" href="../css/resume-app.css">
+  <style>
+    html, body { height: 100%; margin: 0; }
+    textarea.form-input { resize: vertical; min-height: 56px; }
+    .contact-row { display: flex; gap: 8px; margin-bottom: 6px; }
+    .contact-row input { flex: 1; }
+  </style>
+</head>
+
+<body>
+  <div class="rs-app" style="height:100vh;overflow:hidden;">
+    <div class="rs-topbar">
+      <a href="dashboard.html" class="rs-brand" title="Back to Isynq">
+        <span class="rs-brand__icon">I</span><span class="rs-brand__word">Isynq</span>
+      </a>
+      <a href="resumes.html" class="rs-back" title="Back to Resumes">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="17" height="17"><path d="M15 18l-6-6 6-6"/></svg>
+      </a>
+      <div class="rs-title-block">
+        <input type="text" class="rs-title-input" id="title-input" placeholder="Untitled resume">
+        <span class="rs-save-status" id="save-status"></span>
+      </div>
+      <div class="spacer"></div>
+      <div class="tmpl-switch" id="tmpl-switch"></div>
+      <button class="btn btn-ghost btn-sm" id="tailor-link">Tailor to job</button>
+      <button class="btn btn-ghost btn-sm" id="coverletter-link">Cover Letter</button>
+      <button class="btn btn-ghost btn-sm" id="interview-link">Interview Prep</button>
+      <div class="menu-wrap">
+        <button class="btn btn-secondary btn-sm" onclick="toggleExportMenu(this)">⬇ Export ▾</button>
+        <div class="menu" style="right:0;">
+          <button onclick="exportPdf()">📄 Download PDF</button>
+          <button onclick="exportDocx()">📝 Download Word (.docx)</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="rs-editor-shell">
+      <nav class="rs-nav-rail" id="nav-rail"></nav>
+
+      <div class="rs-editor-col">
+        <div class="rs-editor-inner" id="sections-root"></div>
+      </div>
+
+      <div class="rs-preview-col">
+        <div class="rs-preview-bar">
+          <span class="tname" id="preview-tname">Classic template</span>
+          <span class="wysiwyg-note">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+            What you see is what exports
+          </span>
+          <div class="zoom">
+            <button onclick="zoomStep(-1)" id="zoom-out" title="Zoom out">−</button>
+            <span class="val" id="zoom-val">100%</span>
+            <button onclick="zoomStep(1)" id="zoom-in" title="Zoom in">+</button>
+          </div>
+        </div>
+        <div class="rs-preview-scroll">
+          <div class="resume-doc-wrap" id="preview"></div>
+        </div>
+      </div>
+
+      <aside class="rs-ats-rail">
+        <div class="rs-ats-rail__lbl">ATS match · vs a job</div>
+        <div class="ats-card jd-match-box">
+          <textarea class="form-input" id="jd-match-input" placeholder="Paste a job description to see a live, free keyword match — no AI, updates as you type."></textarea>
+          <div id="jd-match-result"></div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script src="../js/storage.js?v=20260714b"></script>
+  <script src="../js/auth.js?v=20260714b"></script>
+  <script src="../js/sidebar.js?v=20260714b"></script>
+  <script src="../js/resumeRender.js?v=20260714b"></script>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const resumeId = params.get('id');
+    const versionId = params.get('v');
+    let data = null;
+    let title = '';
+    let template = 'classic';
+    let saveTimer = null;
+    let dirty = false;
+    const ZOOM_STEPS = [0.75, 0.9, 1, 1.15, 1.3];
+    let zoomIdx = 2;
+    const openSet = new Set(['header', 'summary']);
+
+    const TEMPLATES = [
+      { key: 'classic', label: 'Classic' }, { key: 'modern', label: 'Modern' }, { key: 'compact', label: 'Compact' },
+      { key: 'executive', label: 'Executive' }, { key: 'elegant', label: 'Elegant' }, { key: 'developer', label: 'Developer' },
+    ];
+    const SECTIONS = [
+      { key: 'header', label: 'Header', icon: '<circle cx="12" cy="8" r="4"/><path d="M4 21v-1a8 8 0 0116 0v1"/>' },
+      { key: 'summary', label: 'Summary', icon: '<path d="M4 4h16v16H4z" opacity="0"/><line x1="6" y1="8" x2="18" y2="8"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="6" y1="16" x2="13" y2="16"/>' },
+      { key: 'experience', label: 'Experience', icon: '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/>' },
+      { key: 'skills', label: 'Skills', icon: '<polygon points="12 2 15 9 22 9.5 17 14.5 18.5 22 12 18 5.5 22 7 14.5 2 9.5 9 9"/>' },
+      { key: 'education', label: 'Education', icon: '<path d="M22 10L12 5 2 10l10 5 10-5z"/><path d="M6 12v5c0 1.5 3 3 6 3s6-1.5 6-3v-5"/>' },
+      { key: 'projects', label: 'Projects', icon: '<path d="M3 7h5l2-2h4l2 2h5v12H3z"/>' },
+      { key: 'certifications', label: 'Certifications', icon: '<circle cx="12" cy="9" r="6"/><path d="M9 14l-2 7 5-3 5 3-2-7"/>' },
+    ];
+
+    (async function init() {
+      if (!(await IsynqAuth.requireAuth())) return;
+      if (!resumeId) { window.location.href = 'resumes.html'; return; }
+
+      document.getElementById('tailor-link').onclick = () => window.location.href = `resume-tailor.html?id=${resumeId}`;
+      document.getElementById('coverletter-link').onclick = () => window.location.href = `resume-coverletter.html?id=${resumeId}`;
+      document.getElementById('interview-link').onclick = () => window.location.href = `resume-interview.html?id=${resumeId}`;
+
+      try {
+        const record = versionId
+          ? await IsynqStorage.getResumeVersion(resumeId, versionId)
+          : await IsynqStorage.getResume(resumeId);
+        if (!record) { ResumeUI.toast('Resume not found', 'error'); window.location.href = 'resumes.html'; return; }
+        data = normalizeData(record.data);
+        title = versionId ? `${record.role} @ ${record.company}` : record.title;
+        template = record.template || 'classic';
+      } catch (err) {
+        ResumeUI.toastError(err, 'Failed to load resume');
+        window.location.href = 'resumes.html';
+        return;
+      }
+
+      document.getElementById('title-input').value = title;
+      document.getElementById('title-input').disabled = !!versionId;
+      renderNavRail();
+      renderTemplateSwitch();
+      renderSections();
+      renderPreview();
+      loadReadiness();
+      bindJdMatch();
+
+      document.getElementById('title-input').addEventListener('input', (e) => { title = e.target.value; scheduleSave(); });
+    })();
+
+    function normalizeData(d) {
+      return {
+        name: d.name || '', target: d.target || '', contact: d.contact?.length ? d.contact : [''],
+        summary: d.summary || '',
+        experience: d.experience?.length ? d.experience : [],
+        skills: d.skills?.length ? d.skills : [],
+        education: d.education?.length ? d.education : [],
+        projects: d.projects || [],
+        certifications: d.certifications || [],
+        custom: d.custom || [],
+        sectionOrder: d.sectionOrder || [],
+      };
+    }
+
+    function scheduleSave() {
+      dirty = true;
+      document.getElementById('save-status').innerHTML = 'Saving…';
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(doSave, 700);
+    }
+
+    async function doSave() {
+      if (!dirty) return;
+      dirty = false;
+      try {
+        if (versionId) {
+          await IsynqStorage.updateResumeVersion(resumeId, versionId, { data, template });
+        } else {
+          await IsynqStorage.updateResume(resumeId, { data, template, title });
+        }
+        document.getElementById('save-status').innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg> Saved';
+        loadReadiness();
+        setTimeout(() => { if (!dirty) document.getElementById('save-status').innerHTML = ''; }, 1800);
+      } catch (err) {
+        document.getElementById('save-status').textContent = 'Save failed';
+        ResumeUI.toastError(err, 'Save failed');
+      }
+    }
+
+    // ---------- nav rail ----------
+    function renderNavRail() {
+      const rail = document.getElementById('nav-rail');
+      rail.innerHTML = `<div class="lbl">Sections</div>` + SECTIONS.map((s) => `
+        <button class="rs-nav-item" onclick="jumpTo('${s.key}')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${s.icon}</svg>
+          <span>${s.label}</span>
+        </button>
+      `).join('') + `<div class="rs-readiness" id="readiness-widget"><div class="rs-readiness__lbl">Resume strength</div></div>`;
+    }
+
+    function jumpTo(key) {
+      openSet.add(key);
+      renderSections();
+      document.getElementById(`sec-${key}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    async function loadReadiness() {
+      if (versionId) { document.getElementById('readiness-widget').innerHTML = `<div class="rs-readiness__lbl">Resume strength</div>`; return; }
+      try {
+        const r = await IsynqStorage.getReadiness(resumeId);
+        const widget = document.getElementById('readiness-widget');
+        widget.innerHTML = `<div class="rs-readiness__lbl">Resume strength</div>${ResumeUI.scoreRing({ value: r.score, size: 68, stroke: 6, fontSize: 16 })}<div class="rs-readiness__tip">${ResumeUI.escapeHtml(r.tips[0] || r.label)}</div>`;
+      } catch { /* non-critical */ }
+    }
+
+    // ---------- template switcher ----------
+    function renderTemplateSwitch() {
+      const el = document.getElementById('tmpl-switch');
+      el.innerHTML = TEMPLATES.map((t) => `
+        <button class="tmpl ${t.key === template ? 'is-active' : ''}" onclick="setTemplate('${t.key}')" title="${t.label}">
+          <span class="tmpl__thumb"><i class="hd"></i><i></i><i></i><i style="width:70%"></i></span>
+          <span class="tmpl__label">${t.label}</span>
+        </button>
+      `).join('');
+      document.getElementById('preview-tname').textContent = `${TEMPLATES.find((t) => t.key === template)?.label || 'Classic'} template`;
+    }
+    function setTemplate(key) {
+      template = key;
+      renderTemplateSwitch();
+      renderPreview();
+      scheduleSave();
+    }
+
+    // ---------- accordion sections ----------
+    function toggleSection(key) {
+      if (openSet.has(key)) openSet.delete(key); else openSet.add(key);
+      renderSections();
+    }
+
+    function sectionSummary(key) {
+      if (key.startsWith('custom:')) {
+        const c = findCustom(key.slice(7));
+        return c && c.items.filter((i) => i.trim()).length ? `${c.items.filter((i) => i.trim()).length} item${c.items.length === 1 ? '' : 's'}` : 'Not started';
+      }
+      switch (key) {
+        case 'header': return [data.name, data.target].filter(Boolean).join(' · ') || 'Not started';
+        case 'summary': return data.summary ? `${data.summary.slice(0, 60)}${data.summary.length > 60 ? '…' : ''}` : 'Not started';
+        case 'experience': return data.experience.length ? `${data.experience[0].role || 'Role'}${data.experience.length > 1 ? ` +${data.experience.length - 1} more` : ''}` : 'No roles yet';
+        case 'skills': return data.skills.length ? `${data.skills.length} group${data.skills.length === 1 ? '' : 's'}` : 'No skills yet';
+        case 'education': return data.education.length ? (data.education[0].degree || data.education[0].school || '1 entry') : 'No education yet';
+        case 'projects': return data.projects.length ? `${data.projects.length} project${data.projects.length === 1 ? '' : 's'}` : 'None';
+        case 'certifications': return data.certifications.length ? `${data.certifications.length} certification${data.certifications.length === 1 ? '' : 's'}` : 'None';
+      }
+      return '';
+    }
+
+    function secWrap(key, label, icon, bodyHtml, draggable) {
+      const open = openSet.has(key);
+      return `
+        <div class="sec ${open ? 'open' : ''}" id="sec-${key}" ${draggable ? `data-drag="section" data-id="${key}"` : ''}>
+          <div class="sec__head" onclick="toggleSection('${key}')">
+            ${draggable ? '<span class="drag-grip" title="Drag to reorder" onclick="event.stopPropagation()">⠿</span>' : ''}
+            <svg class="sec__ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${icon}</svg>
+            <div class="sec__titles">
+              <div class="sec__title">${label}</div>
+              <div class="sec__sum">${ResumeUI.escapeHtml(sectionSummary(key))}</div>
+            </div>
+            <svg class="sec__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+          <div class="sec__body">${bodyHtml}</div>
+        </div>`;
+    }
+
+    const CUSTOM_ICON = '<path d="M3 7h5l2-2h4l2 2h5v12H3z" opacity="0.4"/><path d="M12 11v6M9 14h6"/>';
+    const REORDERABLE_SECTIONS = {
+      summary: () => secWrap('summary', 'Summary', SECTIONS[1].icon, summaryBody(), true),
+      experience: () => secWrap('experience', 'Experience', SECTIONS[2].icon, experienceBody(), true),
+      skills: () => secWrap('skills', 'Skills', SECTIONS[3].icon, skillsBody(), true),
+      education: () => secWrap('education', 'Education', SECTIONS[4].icon, educationBody(), true),
+      projects: () => secWrap('projects', 'Projects', SECTIONS[5].icon, projectsBody(), true),
+      certifications: () => secWrap('certifications', 'Certifications', SECTIONS[6].icon, certsBody(), true),
+    };
+    const DEFAULT_SECTION_ORDER = ['summary', 'experience', 'skills', 'education', 'projects', 'certifications'];
+
+    function currentSectionOrder() {
+      const customKeys = data.custom.map((c) => `custom:${c.id}`);
+      const known = [...DEFAULT_SECTION_ORDER, ...customKeys];
+      const saved = (data.sectionOrder || []).filter((k) => known.includes(k));
+      const missing = known.filter((k) => !saved.includes(k));
+      return [...saved, ...missing];
+    }
+
+    function renderSections() {
+      const root = document.getElementById('sections-root');
+      root.innerHTML =
+        secWrap('header', 'Header', SECTIONS[0].icon, headerBody(), false) +
+        currentSectionOrder().map((key) => key.startsWith('custom:')
+          ? secWrap(key, findCustom(key.slice(7)).title || 'Untitled section', CUSTOM_ICON, customBody(findCustom(key.slice(7))), true)
+          : REORDERABLE_SECTIONS[key]()).join('') +
+        `<button class="add-row" onclick="addCustomSection()">+ Add custom section (e.g. Awards, Languages)</button>`;
+      wireInputs();
+      wireDragReorder(root, 'section', (order) => { data.sectionOrder = order; renderPreview(); scheduleSave(); });
+      const expList = document.getElementById('exp-list');
+      if (expList) wireDragReorder(expList, 'exp', reorderExperience);
+      data.experience.forEach((_, i) => {
+        const bl = document.getElementById(`bullets-${i}`);
+        if (bl) wireDragReorder(bl, 'bullet', (order) => reorderBullets(i, order));
+      });
+    }
+
+    /** Generic vanilla drag-to-reorder: wires drag events on the direct
+        children of `containerEl` tagged data-drag="${group}", live-reordering
+        the DOM on dragover, then calls onCommit(idsInNewOrder) on dragend. */
+    function wireDragReorder(containerEl, group, onCommit) {
+      const items = () => [...containerEl.querySelectorAll(`:scope > [data-drag="${group}"]`)];
+      items().forEach((el) => {
+        el.draggable = true;
+        el.addEventListener('dragstart', () => el.classList.add('dragging'));
+        el.addEventListener('dragend', () => {
+          el.classList.remove('dragging');
+          onCommit(items().map((x) => x.dataset.id));
+        });
+        el.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          const dragging = containerEl.querySelector(`:scope > [data-drag="${group}"].dragging`);
+          if (!dragging || dragging === el) return;
+          const rect = el.getBoundingClientRect();
+          const before = (e.clientY - rect.top) < rect.height / 2;
+          containerEl.insertBefore(dragging, before ? el : el.nextSibling);
+        });
+      });
+    }
+
+    // ---------- custom sections ----------
+    function findCustom(id) { return data.custom.find((c) => c.id === id); }
+    function customBody(c) {
+      return `
+        <div class="form-group"><label class="form-label">Section title</label><input type="text" class="form-input" placeholder="e.g. Awards" value="${escapeAttr(c.title)}" oninput="updateCustomTitle('${c.id}', this.value)"></div>
+        <label class="form-label">Items</label>
+        <div>${c.items.map((it, i) => `
+          <div class="custom-item-row">
+            <textarea class="form-input" rows="1" oninput="updateCustomItem('${c.id}',${i},this.value)">${ResumeUI.escapeHtml(it)}</textarea>
+            <button class="btn btn-ghost btn-sm" onclick="removeCustomItem('${c.id}',${i})">✕</button>
+          </div>`).join('')}</div>
+        <button class="add-row" onclick="addCustomItem('${c.id}')">+ Add item</button>
+        <div style="display:flex;justify-content:flex-end;margin-top:10px;">
+          <button class="btn btn-ghost btn-sm" style="color:var(--color-danger);" onclick="removeCustomSection('${c.id}')">Remove section</button>
+        </div>`;
+    }
+    function addCustomSection() {
+      const id = `custom-${Date.now().toString(36)}`;
+      data.custom.push({ id, title: '', items: [''] });
+      openSet.add(`custom:${id}`);
+      renderSections();
+      scheduleSave();
+      document.getElementById(`sec-custom:${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    function updateCustomTitle(id, v) { findCustom(id).title = v; renderPreview(); scheduleSave(); const h = document.querySelector(`#sec-custom\\:${id} .sec__title`); if (h) h.textContent = v || 'Untitled section'; }
+    function addCustomItem(id) { findCustom(id).items.push(''); renderSections(); scheduleSave(); }
+    function updateCustomItem(id, i, v) { findCustom(id).items[i] = v; renderPreview(); scheduleSave(); }
+    function removeCustomItem(id, i) { findCustom(id).items.splice(i, 1); renderSections(); renderPreview(); scheduleSave(); }
+    function removeCustomSection(id) { data.custom = data.custom.filter((c) => c.id !== id); renderSections(); renderPreview(); scheduleSave(); }
+
+    // ---------- header ----------
+    function headerBody() {
+      return `
+        <div class="form-group"><label class="form-label">Full name</label><input type="text" class="form-input" id="f-name" value="${escapeAttr(data.name)}"></div>
+        <div class="form-group"><label class="form-label">Target role</label><input type="text" class="form-input" id="f-target" value="${escapeAttr(data.target)}"></div>
+        <label class="form-label">Contact</label>
+        <div id="contact-list">${data.contact.map((c, i) => `
+          <div class="contact-row">
+            <input type="text" class="form-input" value="${escapeAttr(c)}" oninput="updateContact(${i}, this.value)">
+            <button class="btn btn-ghost btn-sm" onclick="removeContact(${i})">✕</button>
+          </div>`).join('')}</div>
+        <button class="add-row" onclick="addContact()">+ Add contact line</button>`;
+    }
+    function wireInputs() {
+      document.getElementById('f-name')?.addEventListener('input', (e) => { data.name = e.target.value; renderPreview(); refreshSummary('header'); scheduleSave(); });
+      document.getElementById('f-target')?.addEventListener('input', (e) => { data.target = e.target.value; renderPreview(); refreshSummary('header'); scheduleSave(); });
+      document.getElementById('f-summary')?.addEventListener('input', (e) => { data.summary = e.target.value; renderPreview(); refreshSummary('summary'); scheduleSave(); });
+    }
+    function refreshSummary(key) {
+      const el = document.querySelector(`#sec-${key} .sec__sum`);
+      if (el) el.textContent = sectionSummary(key);
+    }
+    function updateContact(i, v) { data.contact[i] = v; renderPreview(); scheduleSave(); }
+    function addContact() { data.contact.push(''); renderSections(); scheduleSave(); }
+    function removeContact(i) { data.contact.splice(i, 1); renderSections(); renderPreview(); scheduleSave(); }
+
+    // ---------- summary ----------
+    function summaryBody() {
+      return `
+        <textarea class="form-input" id="f-summary" rows="4">${ResumeUI.escapeHtml(data.summary)}</textarea>
+        <div style="display:flex;justify-content:flex-end;margin-top:8px;">
+          <button class="btn-ai" onclick="aiGenerateSummary()" id="summary-ai-btn">✨ Generate with AI</button>
+        </div>`;
+    }
+    async function aiGenerateSummary() {
+      const btn = document.getElementById('summary-ai-btn');
+      btn.disabled = true; btn.textContent = 'Generating…';
+      try {
+        const { text } = await IsynqStorage.generateSummary(resumeId, data);
+        data.summary = text;
+        renderSections();
+        renderPreview();
+        scheduleSave();
+        ResumeUI.toast('Summary generated');
+      } catch (err) {
+        ResumeUI.toastError(err, 'Failed to generate summary');
+      } finally {
+        const b = document.getElementById('summary-ai-btn');
+        if (b) { b.disabled = false; b.textContent = '✨ Generate with AI'; }
+      }
+    }
+
+    // ---------- experience ----------
+    function experienceBody() {
+      return `
+        <div id="exp-list">
+        ${data.experience.map((e, i) => `
+          <div class="exp" data-drag="exp" data-id="${i}">
+            <div class="exp__head"><span class="exp__grip drag-grip" title="Drag to reorder">⠿</span><div class="t"><div class="role">${ResumeUI.escapeHtml(e.role) || 'New role'}</div><div class="co">${ResumeUI.escapeHtml(e.company) || 'Company'}</div></div></div>
+            <div class="exp__body">
+              <div class="field-grid">
+                <input type="text" class="form-input" placeholder="Role" value="${escapeAttr(e.role)}" oninput="updateExp(${i},'role',this.value)">
+                <input type="text" class="form-input" placeholder="Company" value="${escapeAttr(e.company)}" oninput="updateExp(${i},'company',this.value)">
+                <input type="text" class="form-input" placeholder="Location" value="${escapeAttr(e.location)}" oninput="updateExp(${i},'location',this.value)">
+                <input type="text" class="form-input" placeholder="Dates (e.g. 2022 — Present)" value="${escapeAttr(e.meta)}" oninput="updateExp(${i},'meta',this.value)">
+              </div>
+              <div class="bullets" id="bullets-${i}">
+                ${e.bullets.map((b, bi) => `
+                  <div data-drag="bullet" data-id="${bi}">
+                    <div class="bullet-row">
+                      <span class="drag-grip" title="Drag to reorder" style="margin-top:8px;">⠿</span>
+                      <textarea class="form-input" rows="2" id="bullet-${i}-${bi}" oninput="updateBullet(${i},${bi},this.value)">${ResumeUI.escapeHtml(b)}</textarea>
+                      <button class="btn btn-ghost btn-sm" onclick="removeBullet(${i},${bi})">✕</button>
+                    </div>
+                    <div class="ai-bar" id="ai-bar-${i}-${bi}">
+                      <button class="ai-chip" onclick="requestRewrite(${i},${bi},'stronger')">✨ Stronger</button>
+                      <button class="ai-chip" onclick="requestRewrite(${i},${bi},'shorter')">Shorter</button>
+                      <button class="ai-chip" onclick="requestRewrite(${i},${bi},'metric')">+ Metric</button>
+                    </div>
+                    <div class="ai-suggestion" id="ai-sug-${i}-${bi}" style="display:none;"></div>
+                  </div>
+                `).join('')}
+              </div>
+              <div style="display:flex;justify-content:space-between;margin-top:4px;">
+                <button class="add-row" style="flex:1;margin-right:8px;" onclick="addBullet(${i})">+ Bullet</button>
+                <button class="btn btn-ghost btn-sm" style="color:var(--color-danger);flex:none;" onclick="removeExperience(${i})">Remove role</button>
+              </div>
+            </div>
+          </div>
+        `).join('')}
+        </div>
+        <button class="add-row" onclick="addExperience()">+ Add role</button>`;
+    }
+    function updateExp(i, field, v) { data.experience[i][field] = v; renderPreview(); scheduleSave(); }
+    function updateBullet(i, bi, v) { data.experience[i].bullets[bi] = v; renderPreview(); scheduleSave(); }
+    function addBullet(i) { data.experience[i].bullets.push(''); renderSections(); scheduleSave(); }
+    function removeBullet(i, bi) { data.experience[i].bullets.splice(bi, 1); renderSections(); renderPreview(); scheduleSave(); }
+    function reorderExperience(order) {
+      data.experience = order.map((idx) => data.experience[+idx]);
+      renderSections(); renderPreview(); scheduleSave();
+    }
+    function reorderBullets(i, order) {
+      data.experience[i].bullets = order.map((idx) => data.experience[i].bullets[+idx]);
+      renderSections(); renderPreview(); scheduleSave();
+    }
+    function addExperience() { data.experience.push({ role: '', company: '', location: '', meta: '', bullets: [''] }); openSet.add('experience'); renderSections(); scheduleSave(); }
+    function removeExperience(i) { data.experience.splice(i, 1); renderSections(); renderPreview(); scheduleSave(); }
+
+    const TONE_LABEL = { stronger: 'Stronger, active voice', shorter: 'Shorter & tighter', metric: 'Quantified with a metric' };
+
+    async function requestRewrite(i, bi, tone) {
+      const bullet = data.experience[i].bullets[bi];
+      if (!bullet || !bullet.trim()) return;
+      const bar = document.getElementById(`ai-bar-${i}-${bi}`);
+      const box = document.getElementById(`ai-sug-${i}-${bi}`);
+      bar.querySelectorAll('.ai-chip').forEach((b) => b.disabled = true);
+      box.style.display = 'block';
+      box.innerHTML = `<div class="ai-suggestion__top"><span class="ai-suggestion__tag">✨ AI suggestion</span></div><div class="ai-suggestion__text">Thinking…</div>`;
+      try {
+        const { text } = await IsynqStorage.rewriteBullet(resumeId, bullet, tone);
+        box.dataset.text = text;
+        box.innerHTML = `
+          <div class="ai-suggestion__top">
+            <span class="ai-suggestion__tag">✨ AI suggestion</span>
+            <span class="ai-suggestion__variant">${TONE_LABEL[tone] || tone}</span>
+          </div>
+          <div class="ai-suggestion__text">${ResumeUI.escapeHtml(text)}</div>
+          <div class="ai-suggestion__acts">
+            <button class="btn btn-primary btn-sm" onclick="acceptSuggestion(${i},${bi})">Replace</button>
+            <button class="btn btn-ghost btn-sm" onclick="requestRewrite(${i},${bi},'${tone}')">Try again</button>
+            <button class="btn btn-ghost btn-sm" onclick="dismissSuggestion(${i},${bi})">Dismiss</button>
+          </div>`;
+      } catch (err) {
+        box.style.display = 'none';
+        box.innerHTML = '';
+        ResumeUI.toastError(err, 'Rewrite failed');
+      } finally {
+        bar.querySelectorAll('.ai-chip').forEach((b) => b.disabled = false);
+      }
+    }
+
+    function acceptSuggestion(i, bi) {
+      const box = document.getElementById(`ai-sug-${i}-${bi}`);
+      const text = box.dataset.text;
+      if (text === undefined) return;
+      data.experience[i].bullets[bi] = text;
+      const ta = document.getElementById(`bullet-${i}-${bi}`);
+      if (ta) { ta.value = text; ta.classList.add('bullet-flash'); setTimeout(() => ta.classList.remove('bullet-flash'), 900); }
+      box.style.display = 'none';
+      box.innerHTML = '';
+      renderPreview();
+      scheduleSave();
+      ResumeUI.toast('Bullet updated');
+    }
+
+    function dismissSuggestion(i, bi) {
+      const box = document.getElementById(`ai-sug-${i}-${bi}`);
+      box.style.display = 'none';
+      box.innerHTML = '';
+    }
+
+    // ---------- skills ----------
+    function skillsBody() {
+      return `
+        ${data.skills.map((s, i) => `
+          <div class="field-grid" style="margin-bottom:8px;">
+            <input type="text" class="form-input" placeholder="Category (optional)" value="${escapeAttr(s[0])}" oninput="updateSkill(${i},0,this.value)">
+            <div style="display:flex;gap:8px;">
+              <input type="text" class="form-input" placeholder="Values, comma separated" value="${escapeAttr(s[1])}" oninput="updateSkill(${i},1,this.value)">
+              <button class="btn btn-ghost btn-sm" onclick="removeSkillGroup(${i})">✕</button>
+            </div>
+          </div>
+        `).join('')}
+        <button class="add-row" onclick="addSkillGroup()">+ Add skill group</button>`;
+    }
+    function updateSkill(i, idx, v) { data.skills[i][idx] = v; renderPreview(); scheduleSave(); }
+    function addSkillGroup() { data.skills.push(['', '']); renderSections(); scheduleSave(); }
+    function removeSkillGroup(i) { data.skills.splice(i, 1); renderSections(); renderPreview(); scheduleSave(); }
+
+    // ---------- education ----------
+    function educationBody() {
+      return `
+        ${data.education.map((e, i) => `
+          <div class="exp"><div class="exp__body" style="padding-top:12px;">
+            <div class="field-grid three">
+              <input type="text" class="form-input" placeholder="Degree" value="${escapeAttr(e.degree)}" oninput="updateEdu(${i},'degree',this.value)">
+              <input type="text" class="form-input" placeholder="School" value="${escapeAttr(e.school)}" oninput="updateEdu(${i},'school',this.value)">
+              <input type="text" class="form-input" placeholder="Dates" value="${escapeAttr(e.meta)}" oninput="updateEdu(${i},'meta',this.value)">
+            </div>
+            <div style="display:flex;justify-content:flex-end;margin-top:8px;"><button class="btn btn-ghost btn-sm" onclick="removeEducation(${i})">✕ Remove</button></div>
+          </div></div>
+        `).join('')}
+        <button class="add-row" onclick="addEducation()">+ Add education</button>`;
+    }
+    function updateEdu(i, field, v) { data.education[i][field] = v; renderPreview(); scheduleSave(); }
+    function addEducation() { data.education.push({ degree: '', school: '', meta: '' }); renderSections(); scheduleSave(); }
+    function removeEducation(i) { data.education.splice(i, 1); renderSections(); renderPreview(); scheduleSave(); }
+
+    // ---------- projects ----------
+    function projectsBody() {
+      return `
+        ${data.projects.map((p, i) => `
+          <div class="exp">
+            <div class="exp__head"><div class="t"><div class="role">${ResumeUI.escapeHtml(p.name) || 'New project'}</div></div></div>
+            <div class="exp__body">
+              <div class="field-grid">
+                <input type="text" class="form-input" placeholder="Project name" value="${escapeAttr(p.name)}" oninput="updateProject(${i},'name',this.value)">
+                <input type="text" class="form-input" placeholder="Date/tag (optional)" value="${escapeAttr(p.meta || '')}" oninput="updateProject(${i},'meta',this.value)">
+              </div>
+              <div class="bullets">
+                ${(p.bullets || []).map((b, bi) => `
+                  <div class="bullet-row">
+                    <textarea class="form-input" rows="2" oninput="updateProjectBullet(${i},${bi},this.value)">${ResumeUI.escapeHtml(b)}</textarea>
+                    <button class="btn btn-ghost btn-sm" onclick="removeProjectBullet(${i},${bi})">✕</button>
+                  </div>
+                `).join('')}
+              </div>
+              <div style="display:flex;justify-content:space-between;margin-top:4px;">
+                <button class="add-row" style="flex:1;margin-right:8px;" onclick="addProjectBullet(${i})">+ Bullet</button>
+                <button class="btn btn-ghost btn-sm" style="color:var(--color-danger);flex:none;" onclick="removeProject(${i})">Remove project</button>
+              </div>
+            </div>
+          </div>
+        `).join('')}
+        <button class="add-row" onclick="addProject()">+ Add project</button>`;
+    }
+    function updateProject(i, field, v) { data.projects[i][field] = v; renderPreview(); scheduleSave(); }
+    function updateProjectBullet(i, bi, v) { data.projects[i].bullets[bi] = v; renderPreview(); scheduleSave(); }
+    function addProjectBullet(i) { (data.projects[i].bullets ??= []).push(''); renderSections(); scheduleSave(); }
+    function removeProjectBullet(i, bi) { data.projects[i].bullets.splice(bi, 1); renderSections(); renderPreview(); scheduleSave(); }
+    function addProject() { data.projects.push({ name: '', meta: '', bullets: [''] }); openSet.add('projects'); renderSections(); scheduleSave(); }
+    function removeProject(i) { data.projects.splice(i, 1); renderSections(); renderPreview(); scheduleSave(); }
+
+    // ---------- certifications ----------
+    function certsBody() {
+      return `
+        ${data.certifications.map((c, i) => `
+          <div class="exp"><div class="exp__body" style="padding-top:12px;">
+            <div class="field-grid three">
+              <input type="text" class="form-input" placeholder="Name" value="${escapeAttr(c.name)}" oninput="updateCert(${i},'name',this.value)">
+              <input type="text" class="form-input" placeholder="Issuer" value="${escapeAttr(c.issuer)}" oninput="updateCert(${i},'issuer',this.value)">
+              <input type="text" class="form-input" placeholder="Date" value="${escapeAttr(c.meta)}" oninput="updateCert(${i},'meta',this.value)">
+            </div>
+            <div style="display:flex;justify-content:flex-end;margin-top:8px;"><button class="btn btn-ghost btn-sm" onclick="removeCert(${i})">✕ Remove</button></div>
+          </div></div>
+        `).join('')}
+        <button class="add-row" onclick="addCert()">+ Add certification</button>`;
+    }
+    function updateCert(i, field, v) { data.certifications[i][field] = v; renderPreview(); scheduleSave(); }
+    function addCert() { data.certifications.push({ name: '', issuer: '', meta: '' }); renderSections(); scheduleSave(); }
+    function removeCert(i) { data.certifications.splice(i, 1); renderSections(); renderPreview(); scheduleSave(); }
+
+    // ---------- ATS-vs-JD rail (deterministic, free, live) ----------
+    let jdMatchTimer = null;
+    function bindJdMatch() {
+      document.getElementById('jd-match-input').addEventListener('input', () => {
+        clearTimeout(jdMatchTimer);
+        jdMatchTimer = setTimeout(runJdMatch, 500);
+      });
+    }
+    async function runJdMatch() {
+      const jd = document.getElementById('jd-match-input').value.trim();
+      const out = document.getElementById('jd-match-result');
+      if (!jd) { out.innerHTML = ''; return; }
+      try {
+        const r = await IsynqStorage.matchAgainstJd(resumeId, jd);
+        const high = r.missing.filter((m) => m.prio === 'high');
+        const med = r.missing.filter((m) => m.prio !== 'high');
+        out.innerHTML = `
+          <div class="jd-match-result">
+            <div class="ring-row">${ResumeUI.scoreRing({ value: r.score, size: 76, stroke: 6, fontSize: 18, cap: 'match' })}</div>
+            <div class="stat">${r.matched}/${r.total} keywords matched</div>
+            ${r.missing.length ? `
+              <div class="jd-missing">
+                <div class="jd-missing__lbl">Missing keywords</div>
+                <div class="jd-missing__chips">
+                  ${high.map((m) => `<span class="jd-kw jd-kw--high">${ResumeUI.escapeHtml(m.label)}</span>`).join('')}
+                  ${med.map((m) => `<span class="jd-kw">${ResumeUI.escapeHtml(m.label)}</span>`).join('')}
+                </div>
+              </div>` : `<div class="jd-missing" style="text-align:center;color:var(--rs-success-text);font-size:0.75rem;">✓ All keywords covered</div>`}
+            <button class="btn btn-primary btn-sm" style="width:100%;" onclick="tailorToThisJob()">Tailor to this job →</button>
+          </div>`;
+      } catch (err) {
+        out.innerHTML = `<p style="font-size:0.75rem;color:var(--rs-text-muted);">Couldn't score against that JD.</p>`;
+      }
+    }
+    function tailorToThisJob() {
+      const jd = document.getElementById('jd-match-input').value.trim();
+      if (jd) sessionStorage.setItem(`tailor-jd:${resumeId}`, jd);
+      window.location.href = `resume-tailor.html?id=${resumeId}`;
+    }
+
+    // ---------- preview ----------
+    function renderPreview() {
+      document.getElementById('preview').innerHTML = ResumeUI.toDocumentHTML(data, template);
+    }
+
+    function zoomStep(dir) {
+      zoomIdx = Math.max(0, Math.min(ZOOM_STEPS.length - 1, zoomIdx + dir));
+      const scale = ZOOM_STEPS[zoomIdx];
+      document.getElementById('preview').style.transform = `scale(${scale})`;
+      document.getElementById('zoom-val').textContent = `${Math.round(scale * 100)}%`;
+      document.getElementById('zoom-out').disabled = zoomIdx === 0;
+      document.getElementById('zoom-in').disabled = zoomIdx === ZOOM_STEPS.length - 1;
+    }
+
+    function toggleExportMenu(btn) {
+      const menu = btn.nextElementSibling;
+      document.querySelectorAll('.menu.open').forEach((m) => { if (m !== menu) m.classList.remove('open'); });
+      menu.classList.toggle('open');
+    }
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.menu-wrap')) document.querySelectorAll('.menu.open').forEach((m) => m.classList.remove('open'));
+    });
+
+    async function flushSave() {
+      clearTimeout(saveTimer);
+      await doSave(); // flush any pending autosave so the export never reads stale data
+    }
+
+    async function exportDocx() {
+      try {
+        await flushSave();
+        const path = versionId ? `/resumes/${resumeId}/versions/${versionId}/export/docx` : `/resumes/${resumeId}/export/docx`;
+        await IsynqStorage.downloadFile(path, 'resume.docx');
+        ResumeUI.toast('Resume exported (.docx)');
+      } catch (err) {
+        ResumeUI.toastError(err, 'Export failed');
+      }
+    }
+
+    async function exportPdf() {
+      try {
+        await flushSave();
+        const path = versionId ? `/resumes/${resumeId}/versions/${versionId}/export/pdf` : `/resumes/${resumeId}/export/pdf`;
+        ResumeUI.toast('Preparing your PDF…');
+        await IsynqStorage.downloadFile(path, 'resume.pdf');
+        ResumeUI.toast('Resume exported (.pdf)');
+      } catch (err) {
+        ResumeUI.toastError(err, 'PDF export failed');
+      }
+    }
+
+    function escapeAttr(s) { return ResumeUI.escapeHtml(s); }
+
+    window.addEventListener('beforeunload', () => { if (dirty) doSave(); });
+  </script>
+</body>
+
+</html>

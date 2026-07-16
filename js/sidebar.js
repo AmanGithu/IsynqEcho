@@ -5,6 +5,7 @@ const IsynqSidebar = {
   NAV_ITEMS: [
     { key: 'dashboard', label: 'Dashboard', href: 'dashboard.html', icon: '🏠' },
     { key: 'assistants', label: 'Assistants', href: 'assistants.html', icon: '🧩' },
+    { key: 'resumes', label: 'Resumes', href: 'resumes.html', icon: '🧾' },
     { key: 'sessions', label: 'Sessions', href: 'sessions.html', icon: '🕒' },
     { key: 'documents', label: 'Documents', href: 'documents.html', icon: '📁' }
   ],

@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cover Letter — Isynq</title>
+  <link rel="stylesheet" href="../css/design-system.css">
+  <link rel="stylesheet" href="../css/components.css">
+  <link rel="stylesheet" href="../css/dashboard.css">
+  <link rel="stylesheet" href="../css/resume-templates.css">
+  <link rel="stylesheet" href="../css/resume-app.css">
+  <style>
+    html, body { height: 100%; margin: 0; }
+  </style>
+</head>
+
+<body>
+  <div class="rs-app" style="height:100vh;overflow:hidden;">
+    <div class="rs-topbar">
+      <a href="dashboard.html" class="rs-brand" title="Back to Isynq">
+        <span class="rs-brand__icon">I</span><span class="rs-brand__word">Isynq</span>
+      </a>
+      <a id="back-link" class="rs-back" title="Back to editor">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="17" height="17"><path d="M15 18l-6-6 6-6"/></svg>
+      </a>
+      <div class="rs-title-block">
+        <span class="eyebrow">✉️ Cover Letter</span>
+        <b style="font-size:0.9375rem;" id="topbar-title">Generate and edit a tailored letter</b>
+      </div>
+      <div class="spacer"></div>
+      <span class="rs-save-status" id="save-status"></span>
+      <div class="menu-wrap">
+        <button class="btn btn-secondary btn-sm" onclick="toggleExportMenu(this)">⬇ Export ▾</button>
+        <div class="menu" style="right:0;">
+          <button onclick="exportPdf()">📄 Download PDF</button>
+          <button onclick="exportDocx()">📝 Download Word (.docx)</button>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-sm" id="save-btn" onclick="save()">Save</button>
+    </div>
+
+    <div class="cl-shell">
+      <div class="cl-controls">
+        <div class="form-group">
+          <label class="form-label">Company</label>
+          <input type="text" class="form-input" id="f-company">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Role</label>
+          <input type="text" class="form-input" id="f-role">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Hiring manager <span style="color:var(--rs-text-muted);font-weight:400;">(optional)</span></label>
+          <input type="text" class="form-input" id="f-manager" placeholder="Hiring Manager">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tone</label>
+          <div class="segmented" id="tone-seg" style="width:100%;">
+            <button data-v="professional" aria-pressed="true" style="flex:1;">Professional</button>
+            <button data-v="enthusiastic" aria-pressed="false" style="flex:1;">Enthusiastic</button>
+            <button data-v="concise" aria-pressed="false" style="flex:1;">Concise</button>
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">Job description <span style="color:var(--rs-text-muted);font-weight:400;">(optional)</span></label>
+          <textarea class="form-input" id="f-jd" rows="6" placeholder="Paste the job description for a more targeted letter..."></textarea>
+        </div>
+        <button class="btn-ai" style="width:100%;justify-content:center;padding:9px;margin-top:14px;" id="generate-btn" onclick="generate()">✨ Generate</button>
+        <p style="font-size:0.75rem;color:var(--rs-text-muted);margin:10px 2px 0;">Drawn from your résumé — it never invents facts. Edit the letter directly on the right; changes autosave.</p>
+      </div>
+
+      <div class="cl-preview-wrap">
+        <div class="cl-sheet">
+          <div class="cl-doc">
+            <header class="cl-head">
+              <div class="cl-name" id="cl-name"></div>
+              <div class="cl-contact" id="cl-contact"></div>
+            </header>
+            <div class="cl-date" id="cl-date"></div>
+            <div class="cl-body" id="cl-body" contenteditable="true" data-placeholder="Your generated cover letter will appear here — feel free to edit it."></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../js/storage.js?v=20260714b"></script>
+  <script src="../js/auth.js?v=20260714b"></script>
+  <script src="../js/sidebar.js?v=20260714b"></script>
+  <script src="../js/resumeRender.js?v=20260714b"></script>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const resumeId = params.get('id');
+    let tone = 'professional';
+    let saveTimer = null;
+    let dirty = false;
+
+    (async function init() {
+      if (!(await IsynqAuth.requireAuth())) return;
+      if (!resumeId) { window.location.href = 'resumes.html'; return; }
+      document.getElementById('back-link').href = `resume-editor.html?id=${resumeId}`;
+
+      try {
+        const resume = await IsynqStorage.getResume(resumeId);
+        if (resume) {
+          document.getElementById('topbar-title').textContent = `Cover letter for "${resume.title}"`;
+          const data = resume.data || {};
+          document.getElementById('cl-name').textContent = data.name || '';
+          document.getElementById('cl-contact').textContent = (data.contact || []).filter((c) => c && c.trim()).join('  •  ');
+        }
+      } catch { /* non-critical */ }
+      document.getElementById('cl-date').textContent = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+      document.getElementById('tone-seg').addEventListener('click', (e) => {
+        const btn = e.target.closest('button');
+        if (!btn) return;
+        tone = btn.dataset.v;
+        document.querySelectorAll('#tone-seg button').forEach((b) => b.setAttribute('aria-pressed', b === btn ? 'true' : 'false'));
+        scheduleSave();
+      });
+      ['f-company', 'f-role', 'f-manager', 'f-jd'].forEach((id) => document.getElementById(id).addEventListener('input', scheduleSave));
+      document.getElementById('cl-body').addEventListener('input', scheduleSave);
+
+      try {
+        const rec = await IsynqStorage.getCoverLetter(resumeId);
+        if (rec) {
+          document.getElementById('f-company').value = rec.company || '';
+          document.getElementById('f-role').value = rec.role || '';
+          document.getElementById('f-manager').value = rec.manager || '';
+          document.getElementById('f-jd').value = rec.jd || '';
+          setTone(rec.tone || 'professional');
+          document.getElementById('cl-body').textContent = rec.body || '';
+          if (rec.body) document.getElementById('generate-btn').textContent = '✨ Regenerate';
+        }
+      } catch { /* nothing generated yet */ }
+    })();
+
+    function scheduleSave() {
+      dirty = true;
+      document.getElementById('save-status').textContent = 'Editing…';
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(save, 900);
+    }
+
+    function setTone(v) {
+      tone = v;
+      document.querySelectorAll('#tone-seg button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.v === v ? 'true' : 'false'));
+    }
+
+    async function generate() {
+      const btn = document.getElementById('generate-btn');
+      btn.disabled = true; btn.textContent = 'Generating…';
+      try {
+        const input = {
+          company: document.getElementById('f-company').value.trim(),
+          role: document.getElementById('f-role').value.trim(),
+          hiringManager: document.getElementById('f-manager').value.trim(),
+          tone,
+          jd: document.getElementById('f-jd').value.trim(),
+        };
+        const { body } = await IsynqStorage.generateCoverLetter(resumeId, input);
+        document.getElementById('cl-body').textContent = body;
+        dirty = true;
+        await save();
+        ResumeUI.toast('Cover letter generated');
+      } catch (err) {
+        ResumeUI.toastError(err, 'Failed to generate cover letter');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = document.getElementById('cl-body').textContent.trim() ? '✨ Regenerate' : '✨ Generate';
+      }
+    }
+
+    async function save() {
+      clearTimeout(saveTimer);
+      if (!dirty) return;
+      dirty = false;
+      const btn = document.getElementById('save-btn');
+      const status = document.getElementById('save-status');
+      btn.classList.add('loading'); btn.disabled = true;
+      try {
+        await IsynqStorage.saveCoverLetter(resumeId, {
+          company: document.getElementById('f-company').value.trim(),
+          role: document.getElementById('f-role').value.trim(),
+          manager: document.getElementById('f-manager').value.trim(),
+          tone,
+          jd: document.getElementById('f-jd').value.trim(),
+          body: document.getElementById('cl-body').textContent,
+        });
+        status.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="12" height="12"><path d="M20 6L9 17l-5-5"/></svg> Saved';
+        setTimeout(() => { if (!dirty) status.textContent = ''; }, 2000);
+      } catch (err) {
+        status.textContent = '';
+        ResumeUI.toastError(err, 'Failed to save cover letter');
+      } finally {
+        btn.classList.remove('loading'); btn.disabled = false;
+      }
+    }
+
+    function toggleExportMenu(btn) {
+      const menu = btn.nextElementSibling;
+      document.querySelectorAll('.menu.open').forEach((m) => { if (m !== menu) m.classList.remove('open'); });
+      menu.classList.toggle('open');
+    }
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.menu-wrap')) document.querySelectorAll('.menu.open').forEach((m) => m.classList.remove('open'));
+    });
+
+    async function exportDocx() {
+      try {
+        await save();
+        await IsynqStorage.downloadFile(`/resumes/${resumeId}/cover-letter/export/docx`, 'cover_letter.docx');
+        ResumeUI.toast('Cover letter exported (.docx)');
+      } catch (err) {
+        ResumeUI.toastError(err, 'Export failed — generate and save a cover letter first');
+      }
+    }
+
+    async function exportPdf() {
+      try {
+        await save();
+        ResumeUI.toast('Preparing your PDF…');
+        await IsynqStorage.downloadFile(`/resumes/${resumeId}/cover-letter/export/pdf`, 'cover_letter.pdf');
+        ResumeUI.toast('Cover letter exported (.pdf)');
+      } catch (err) {
+        ResumeUI.toastError(err, 'PDF export failed — generate and save a cover letter first');
+      }
+    }
+  </script>
+</body>
+
+</html>

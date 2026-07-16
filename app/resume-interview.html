@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interview Prep — Isynq</title>
+  <link rel="stylesheet" href="../css/design-system.css">
+  <link rel="stylesheet" href="../css/components.css">
+  <link rel="stylesheet" href="../css/dashboard.css">
+  <link rel="stylesheet" href="../css/resume-templates.css">
+  <link rel="stylesheet" href="../css/resume-app.css">
+  <style>
+    html, body { height: 100%; margin: 0; }
+  </style>
+</head>
+
+<body>
+  <div class="rs-app" style="height:100vh;overflow:hidden;">
+    <div class="rs-topbar">
+      <a href="dashboard.html" class="rs-brand" title="Back to Isynq">
+        <span class="rs-brand__icon">I</span><span class="rs-brand__word">Isynq</span>
+      </a>
+      <a id="back-link" class="rs-back" title="Back to editor">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="17" height="17"><path d="M15 18l-6-6 6-6"/></svg>
+      </a>
+      <div class="rs-title-block">
+        <span class="eyebrow">🎤 Interview Prep</span>
+        <b style="font-size:0.9375rem;" id="topbar-title">Likely questions, sample answers &amp; tips</b>
+      </div>
+    </div>
+
+    <div class="iv-wrap">
+      <div class="iv-inner">
+        <div class="iv-setup">
+          <div class="iv-field">
+            <label>Target role</label>
+            <input type="text" class="form-input" id="f-role" placeholder="e.g. Senior Frontend Engineer">
+          </div>
+          <div class="iv-field">
+            <label>Job description</label>
+            <textarea class="form-input" id="f-jd" rows="8" placeholder="Paste the job description here..."></textarea>
+          </div>
+          <div class="iv-setup__foot">
+            <button class="btn-ai" id="generate-btn" onclick="generate()">✨ Generate questions</button>
+            <span class="iv-hint">16–20 likely questions with answering tips, tailored to this job.</span>
+          </div>
+        </div>
+
+        <div class="iv-empty" id="idle-panel">Paste a job description and click Generate to get a tailored question set.</div>
+
+        <div id="results-panel" style="display:none;flex-direction:column;gap:18px;">
+          <div class="iv-toolbar">
+            <span class="iv-count" id="iv-count"></span>
+            <div class="iv-toggles">
+              <button class="iv-toggle" id="toggle-answers" onclick="toggleAnswers()">Hide answers</button>
+              <button class="iv-toggle" id="toggle-tips" onclick="toggleTips()">Hide tips</button>
+            </div>
+          </div>
+          <div class="iv-tips" id="tips-box" style="display:none;">
+            <div class="iv-tips__head">Before the interview</div>
+            <ul class="iv-tips__list" id="tips-list"></ul>
+          </div>
+          <div id="questions-list" style="display:flex;flex-direction:column;gap:18px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../js/storage.js?v=20260714b"></script>
+  <script src="../js/auth.js?v=20260714b"></script>
+  <script src="../js/sidebar.js?v=20260714b"></script>
+  <script src="../js/resumeRender.js?v=20260714b"></script>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const resumeId = params.get('id');
+    let showAnswers = true;
+    let showTips = true;
+    let lastQuestions = [];
+    let lastTips = [];
+
+    (async function init() {
+      if (!(await IsynqAuth.requireAuth())) return;
+      if (!resumeId) { window.location.href = 'resumes.html'; return; }
+      document.getElementById('back-link').href = `resume-editor.html?id=${resumeId}`;
+
+      try {
+        const resume = await IsynqStorage.getResume(resumeId);
+        if (resume) document.getElementById('topbar-title').textContent = `Interview prep for "${resume.title}"`;
+      } catch { /* non-critical */ }
+
+      try {
+        const rec = await IsynqStorage.getInterviewPrep(resumeId);
+        if (rec && rec.questions && rec.questions.length) {
+          document.getElementById('f-role').value = rec.role || '';
+          document.getElementById('f-jd').value = rec.jd || '';
+          document.getElementById('generate-btn').textContent = '✨ Regenerate questions';
+          renderResults(rec.questions, rec.tips || []);
+        }
+      } catch { /* nothing generated yet */ }
+    })();
+
+    async function generate() {
+      const jd = document.getElementById('f-jd').value.trim();
+      if (!jd) { ResumeUI.toast('Paste a job description first', 'error'); return; }
+      const btn = document.getElementById('generate-btn');
+      btn.disabled = true; btn.textContent = 'Generating…';
+      try {
+        const role = document.getElementById('f-role').value.trim();
+        const { questions, tips } = await IsynqStorage.generateInterviewPrep(resumeId, { jd, role });
+        renderResults(questions, tips);
+        ResumeUI.toast('Interview prep generated');
+      } catch (err) {
+        ResumeUI.toastError(err, 'Failed to generate interview prep');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = lastQuestions.length ? '✨ Regenerate questions' : '✨ Generate questions';
+      }
+    }
+
+    function renderResults(questions, tips) {
+      lastQuestions = questions;
+      lastTips = tips || [];
+      document.getElementById('idle-panel').style.display = 'none';
+      document.getElementById('results-panel').style.display = 'flex';
+      document.getElementById('iv-count').textContent = `${questions.length} question${questions.length === 1 ? '' : 's'}`;
+
+      if (lastTips.length) {
+        document.getElementById('tips-box').style.display = showTips ? 'block' : 'none';
+        document.getElementById('tips-list').innerHTML = lastTips.map((t) => `<li>${ResumeUI.escapeHtml(t)}</li>`).join('');
+      } else {
+        document.getElementById('tips-box').style.display = 'none';
+      }
+
+      const groups = {};
+      for (const q of questions) (groups[q.category] ??= []).push(q);
+
+      let n = 0;
+      document.getElementById('questions-list').innerHTML = Object.entries(groups).map(([category, qs]) => `
+        <div class="iv-group">
+          <div class="iv-group__head"><span class="iv-dot"></span>${ResumeUI.escapeHtml(category)}</div>
+          ${qs.map((q) => { n++; return `
+            <div class="iv-q">
+              <div class="iv-q__row">
+                <span class="iv-q__n">${String(n).padStart(2, '0')}</span>
+                <span class="iv-q__text">${ResumeUI.escapeHtml(q.question)}</span>
+              </div>
+              ${showAnswers && q.answer ? `<div class="iv-q__answer"><span class="iv-q__label">Sample answer</span>${ResumeUI.escapeHtml(q.answer)}</div>` : ''}
+              ${showTips && q.tip ? `<div class="iv-q__tip"><b>Tip:</b> ${ResumeUI.escapeHtml(q.tip)}</div>` : ''}
+            </div>
+          `; }).join('')}
+        </div>
+      `).join('');
+    }
+
+    function toggleAnswers() {
+      showAnswers = !showAnswers;
+      document.getElementById('toggle-answers').textContent = showAnswers ? 'Hide answers' : 'Show answers';
+      if (lastQuestions.length) renderResults(lastQuestions, lastTips);
+    }
+    function toggleTips() {
+      showTips = !showTips;
+      document.getElementById('toggle-tips').textContent = showTips ? 'Hide tips' : 'Show tips';
+      if (lastQuestions.length) renderResults(lastQuestions, lastTips);
+    }
+  </script>
+</body>
+
+</html>

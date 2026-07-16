@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resumes — Isynq</title>
+  <link rel="stylesheet" href="../css/design-system.css">
+  <link rel="stylesheet" href="../css/components.css">
+  <link rel="stylesheet" href="../css/dashboard.css">
+  <link rel="stylesheet" href="../css/resume-templates.css">
+  <link rel="stylesheet" href="../css/resume-app.css">
+</head>
+
+<body>
+  <div class="app-shell">
+    <div id="sidebar-root"></div>
+    <div class="app-main">
+      <div class="app-content" style="padding:0;">
+        <div class="rs-page">
+          <div class="rs-page-head">
+            <div>
+              <h1>Resumes</h1>
+              <div class="sub" id="page-sub">Build, import, and tailor ATS-safe resumes</div>
+            </div>
+            <div class="cta">
+              <button class="btn btn-secondary" onclick="openImportModal()">⬆ Import</button>
+              <button class="btn btn-primary" onclick="handleCreate()">+ New resume</button>
+            </div>
+          </div>
+
+          <div id="resume-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Import Dialog -->
+  <div class="rs-dialog-overlay" id="import-modal" style="display:none;">
+    <div class="rs-dialog" style="max-width:480px;">
+      <div class="rs-dialog__body">
+        <h3>Import resume</h3>
+        <p class="rs-dialog__desc">We parse deterministically — nothing is reworded or invented.</p>
+        <div class="import-tabs">
+          <div class="import-tab active" id="tab-file" onclick="setImportSource('file')">Upload PDF/DOCX</div>
+          <div class="import-tab" id="tab-linkedin" onclick="setImportSource('linkedin')">LinkedIn PDF</div>
+        </div>
+
+        <div id="file-panel">
+          <div class="dropzone" id="dropzone" onclick="document.getElementById('import-file').click()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="26" height="26"><path d="M12 16V4M12 4l-4 4M12 4l4 4"/><path d="M4 16v3a2 2 0 002 2h12a2 2 0 002-2v-3"/></svg>
+            <div><b>Drop your file here</b>, or click to browse</div>
+            <div class="dropzone__hint">PDF or DOCX, up to 10MB</div>
+          </div>
+          <input type="file" id="import-file" accept=".pdf,.docx" style="display:none;" onchange="fileChosen()">
+          <div id="file-chosen-name" style="font-size:0.8125rem;color:var(--rs-text-secondary);margin-top:8px;"></div>
+        </div>
+
+        <div id="linkedin-panel" style="display:none;">
+          <ol style="margin:0 0 14px;padding-left:20px;font-size:0.8125rem;color:var(--rs-text-secondary);line-height:1.7;">
+            <li>Open your own LinkedIn profile in a browser</li>
+            <li>Click <b>"More"</b> → <b>"Save to PDF"</b> (desktop web only)</li>
+            <li>Upload the downloaded PDF below</li>
+          </ol>
+          <div class="dropzone" id="dropzone-li" onclick="document.getElementById('import-file-li').click()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="26" height="26"><path d="M12 16V4M12 4l-4 4M12 4l4 4"/><path d="M4 16v3a2 2 0 002 2h12a2 2 0 002-2v-3"/></svg>
+            <div><b>Drop your LinkedIn PDF here</b>, or click to browse</div>
+          </div>
+          <input type="file" id="import-file-li" accept=".pdf" style="display:none;" onchange="fileChosen(true)">
+          <div id="file-chosen-name-li" style="font-size:0.8125rem;color:var(--rs-text-secondary);margin-top:8px;"></div>
+        </div>
+      </div>
+      <div class="rs-dialog__footer">
+        <button class="btn btn-ghost" onclick="closeImportModal()">Cancel</button>
+        <button class="btn btn-primary" id="import-submit-btn" onclick="submitImport()">Import</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rename Dialog -->
+  <div class="rs-dialog-overlay" id="rename-modal" style="display:none;">
+    <div class="rs-dialog">
+      <div class="rs-dialog__body">
+        <h3>Rename resume</h3>
+        <div class="form-group" style="margin-top:14px;">
+          <input type="text" class="form-input" id="rename-input">
+        </div>
+      </div>
+      <div class="rs-dialog__footer">
+        <button class="btn btn-ghost" onclick="closeRenameModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="submitRename()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm Delete Dialog -->
+  <div class="rs-dialog-overlay" id="confirm-modal" style="display:none;">
+    <div class="rs-dialog">
+      <div class="rs-dialog__body">
+        <h3 id="confirm-title">Delete?</h3>
+        <p class="rs-dialog__desc" id="confirm-desc">This cannot be undone.</p>
+      </div>
+      <div class="rs-dialog__footer">
+        <button class="btn btn-ghost" onclick="closeConfirmModal()">Cancel</button>
+        <button class="btn btn-primary" style="background:var(--color-danger);" id="confirm-btn" onclick="confirmAction()">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../js/storage.js?v=20260714b"></script>
+  <script src="../js/auth.js?v=20260714b"></script>
+  <script src="../js/sidebar.js?v=20260714b"></script>
+  <script src="../js/resumeRender.js?v=20260714b"></script>
+  <script>
+    let resumes = [];
+    let importSource = 'file';
+    let renamingId = null;
+    let confirmHandler = null;
+
+    (async function init() {
+      if (!(await IsynqAuth.requireAuth())) return;
+      IsynqSidebar.render('resumes');
+      await loadResumes();
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('.menu-wrap')) document.querySelectorAll('.menu.open').forEach((m) => m.classList.remove('open'));
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape') return;
+        document.querySelectorAll('.menu.open').forEach((m) => m.classList.remove('open'));
+        if (document.getElementById('rename-modal').style.display === 'flex') closeRenameModal();
+        if (document.getElementById('import-modal').style.display === 'flex') closeImportModal();
+        if (document.getElementById('confirm-modal').style.display === 'flex') closeConfirmModal();
+      });
+      document.getElementById('rename-input').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') submitRename();
+      });
+    })();
+
+    async function loadResumes() {
+      const list = document.getElementById('resume-list');
+      list.innerHTML = `<div class="empty-state" style="padding:48px;">Loading resumes...</div>`;
+      resumes = await IsynqStorage.getResumes();
+      renderList();
+    }
+
+    function atsClass(score) {
+      return score >= 80 ? 'good' : score >= 60 ? 'mid' : 'low';
+    }
+
+    function renderList() {
+      const list = document.getElementById('resume-list');
+      const variantCount = resumes.reduce((n, r) => n + (r.variants ? r.variants.length : 0), 0);
+      document.getElementById('page-sub').textContent = resumes.length
+        ? `${resumes.length} base resume${resumes.length === 1 ? '' : 's'} · ${variantCount} tailored version${variantCount === 1 ? '' : 's'}`
+        : 'Build, import, and tailor ATS-safe resumes';
+
+      if (!resumes.length) {
+        list.innerHTML = `
+          <div class="rs-empty">
+            <div class="rs-empty__mark">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="8" y1="13" x2="16" y2="13" />
+                <line x1="8" y1="17" x2="16" y2="17" />
+              </svg>
+            </div>
+            <h2>No resumes yet</h2>
+            <p>Create a blank resume or import an existing one — you'll be tailoring it to jobs in minutes.</p>
+            <div class="rs-empty__cta">
+              <button class="btn btn-secondary" onclick="openImportModal('file')">⬆ Upload resume</button>
+              <button class="btn btn-secondary" onclick="openImportModal('linkedin')">in Import from LinkedIn</button>
+              <button class="btn btn-primary" onclick="handleCreate()">+ Start from scratch</button>
+            </div>
+          </div>`;
+        return;
+      }
+
+      list.innerHTML = `<div class="rs-cards">${resumes.map((r) => `
+        <div class="res-card">
+          <div class="res-card__main">
+            <div class="res-thumb" onclick="openEditor('${r.id}')">${ResumeUI.thumbnailHTML(ResumeUI.SAMPLE_DATA, r.template, 92)}</div>
+            <div class="res-card__info">
+              <div class="res-card__titlerow">
+                <button class="res-card__title" onclick="openEditor('${r.id}')">${ResumeUI.escapeHtml(r.title)}</button>
+              </div>
+              <div class="res-card__meta">
+                <span>Updated ${timeAgo(r.updatedAt)}</span>
+                <span class="dot-sep"></span>
+                <span style="text-transform:capitalize;">${r.template || 'classic'} template</span>
+              </div>
+            </div>
+            <div class="res-card__actions">
+              <button class="btn btn-secondary btn-sm" onclick="openTailor('${r.id}')">Tailor to job</button>
+              <button class="btn btn-primary btn-sm" onclick="openEditor('${r.id}')">Edit</button>
+              <div class="menu-wrap">
+                <button class="kebab" onclick="toggleMenu(this)">⋮</button>
+                <div class="menu">
+                  <button onclick="promptRename('${r.id}')">✏️ Rename</button>
+                  <button onclick="handleDuplicate('${r.id}')">⧉ Duplicate</button>
+                  <button onclick="window.location.href='resume-coverletter.html?id=${r.id}'">✉️ Cover letter</button>
+                  <button onclick="window.location.href='resume-interview.html?id=${r.id}'">🎤 Interview prep</button>
+                  <div class="menu__sep"></div>
+                  <button class="danger" onclick="handleDelete('${r.id}','${ResumeUI.escapeHtml(r.title).replace(/'/g, "\\'")}')">🗑 Delete</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          ${r.variants && r.variants.length ? `
+            <div class="variants">
+              ${r.variants.map((v) => `
+                <div class="variant">
+                  <span class="ats-pill ats-pill--${atsClass(v.ats)}">${v.ats}</span>
+                  <div class="variant__info">
+                    <div class="variant__role">${ResumeUI.escapeHtml(v.role)} <span class="at">@ ${ResumeUI.escapeHtml(v.company)}</span></div>
+                    <div class="variant__time">Updated ${timeAgo(v.updatedAt)}</div>
+                  </div>
+                  <div class="variant__actions">
+                    <button class="btn btn-ghost btn-sm" onclick="openEditor('${r.id}','${v.id}')">Open</button>
+                    <div class="menu-wrap">
+                      <button class="kebab kebab--sm" onclick="toggleMenu(this)">⋮</button>
+                      <div class="menu">
+                        <button onclick="downloadVariant('${r.id}','${v.id}','pdf')">📄 Download PDF</button>
+                        <button onclick="downloadVariant('${r.id}','${v.id}','docx')">📝 Download Word</button>
+                        <button onclick="handleDuplicateVariant('${r.id}','${v.id}')">⧉ Duplicate</button>
+                        <div class="menu__sep"></div>
+                        <button class="danger" onclick="deleteVariantConfirm('${r.id}','${v.id}','${ResumeUI.escapeHtml(v.role).replace(/'/g, "\\'")}')">🗑 Delete</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          ` : `
+            <div class="novar">
+              <div class="novar__txt"><b>No tailored versions yet.</b> Paste a job description to get an ATS match score and AI suggestions.</div>
+              <button class="btn btn-ghost btn-sm" onclick="openTailor('${r.id}')">Tailor now →</button>
+            </div>
+          `}
+        </div>
+      `).join('')}</div>`;
+    }
+
+    function toggleMenu(btn) {
+      const menu = btn.nextElementSibling;
+      document.querySelectorAll('.menu.open').forEach((m) => { if (m !== menu) m.classList.remove('open'); });
+      menu.classList.toggle('open');
+    }
+
+    function timeAgo(iso) {
+      if (!iso) return 'just now';
+      const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+      if (s < 60) return 'just now';
+      const m = Math.floor(s / 60);
+      if (m < 60) return `${m} minute${m === 1 ? '' : 's'} ago`;
+      const h = Math.floor(m / 60);
+      if (h < 24) return `${h} hour${h === 1 ? '' : 's'} ago`;
+      const d = Math.floor(h / 24);
+      return d === 1 ? 'yesterday' : `${d} days ago`;
+    }
+
+    function openEditor(id, versionId) {
+      window.location.href = versionId ? `resume-editor.html?id=${id}&v=${versionId}` : `resume-editor.html?id=${id}`;
+    }
+
+    function openTailor(id) {
+      window.location.href = `resume-tailor.html?id=${id}`;
+    }
+
+    async function handleCreate() {
+      try {
+        const r = await IsynqStorage.createResume();
+        window.location.href = `resume-editor.html?id=${r.id}`;
+      } catch (err) {
+        ResumeUI.toastError(err, 'Failed to create resume');
+      }
+    }
+
+    async function handleDuplicate(id) {
+      try {
+        await IsynqStorage.duplicateResume(id);
+        ResumeUI.toast('Resume duplicated');
+        await loadResumes();
+      } catch (err) {
+        ResumeUI.toastError(err, 'Failed to duplicate resume');
+      }
+    }
+
+    async function handleDuplicateVariant(resumeId, versionId) {
+      try {
+        await IsynqStorage.duplicateResumeVersion(resumeId, versionId);
+        ResumeUI.toast('Version duplicated');
+        await loadResumes();
+      } catch (err) {
+        ResumeUI.toastError(err, 'Failed to duplicate version');
+      }
+    }
+
+    async function downloadVariant(resumeId, versionId, format) {
+      try {
+        ResumeUI.toast(format === 'pdf' ? 'Preparing your PDF…' : 'Preparing your Word document…');
+        await IsynqStorage.downloadFile(`/resumes/${resumeId}/versions/${versionId}/export/${format}`, `resume.${format}`);
+      } catch (err) {
+        ResumeUI.toastError(err, 'Export failed');
+      }
+    }
+
+    function handleDelete(id, title) {
+      openConfirmModal(`Delete "${title}"?`, 'This deletes the resume and all its tailored versions. This cannot be undone.', async () => {
+        try {
+          await IsynqStorage.deleteResume(id);
+          ResumeUI.toast('Resume deleted');
+          await loadResumes();
+        } catch (err) {
+          ResumeUI.toastError(err, 'Failed to delete resume');
+        }
+      });
+    }
+
+    function deleteVariantConfirm(resumeId, versionId, role) {
+      openConfirmModal(`Delete "${role}"?`, 'This tailored version will be permanently deleted.', async () => {
+        try {
+          await IsynqStorage.deleteResumeVersion(resumeId, versionId);
+          ResumeUI.toast('Version deleted');
+          await loadResumes();
+        } catch (err) {
+          ResumeUI.toastError(err, 'Failed to delete version');
+        }
+      });
+    }
+
+    function openConfirmModal(title, desc, handler) {
+      document.getElementById('confirm-title').textContent = title;
+      document.getElementById('confirm-desc').textContent = desc;
+      confirmHandler = handler;
+      document.getElementById('confirm-modal').style.display = 'flex';
+    }
+    function closeConfirmModal() {
+      document.getElementById('confirm-modal').style.display = 'none';
+      confirmHandler = null;
+    }
+    function confirmAction() {
+      const handler = confirmHandler;
+      closeConfirmModal();
+      if (handler) handler();
+    }
+
+    function promptRename(id) {
+      renamingId = id;
+      const r = resumes.find((x) => x.id === id);
+      const input = document.getElementById('rename-input');
+      input.value = r ? r.title : '';
+      document.getElementById('rename-modal').style.display = 'flex';
+      setTimeout(() => { input.focus(); input.select(); }, 30);
+    }
+    function closeRenameModal() {
+      document.getElementById('rename-modal').style.display = 'none';
+      renamingId = null;
+    }
+    async function submitRename() {
+      const title = document.getElementById('rename-input').value.trim();
+      if (!title || !renamingId) return;
+      try {
+        await IsynqStorage.renameResume(renamingId, title);
+        closeRenameModal();
+        ResumeUI.toast('Resume renamed');
+        await loadResumes();
+      } catch (err) {
+        ResumeUI.toastError(err, 'Failed to rename resume');
+      }
+    }
+
+    function setImportSource(source) {
+      importSource = source;
+      document.getElementById('tab-file').classList.toggle('active', source === 'file');
+      document.getElementById('tab-linkedin').classList.toggle('active', source === 'linkedin');
+      document.getElementById('file-panel').style.display = source === 'file' ? 'block' : 'none';
+      document.getElementById('linkedin-panel').style.display = source === 'linkedin' ? 'block' : 'none';
+    }
+
+    function fileChosen(isLinkedIn) {
+      const input = document.getElementById(isLinkedIn ? 'import-file-li' : 'import-file');
+      const label = document.getElementById(isLinkedIn ? 'file-chosen-name-li' : 'file-chosen-name');
+      label.textContent = input.files[0] ? `Selected: ${input.files[0].name}` : '';
+    }
+
+    function wireDropzone(zoneId, inputId) {
+      const zone = document.getElementById(zoneId);
+      const input = document.getElementById(inputId);
+      ['dragenter', 'dragover'].forEach((ev) => zone.addEventListener(ev, (e) => { e.preventDefault(); zone.classList.add('is-over'); }));
+      ['dragleave', 'drop'].forEach((ev) => zone.addEventListener(ev, (e) => { e.preventDefault(); zone.classList.remove('is-over'); }));
+      zone.addEventListener('drop', (e) => {
+        const file = e.dataTransfer.files[0];
+        if (file) { input.files = e.dataTransfer.files; fileChosen(inputId === 'import-file-li'); }
+      });
+    }
+    wireDropzone('dropzone', 'import-file');
+    wireDropzone('dropzone-li', 'import-file-li');
+
+    function openImportModal(preset) {
+      document.getElementById('import-file').value = '';
+      document.getElementById('import-file-li').value = '';
+      document.getElementById('file-chosen-name').textContent = '';
+      document.getElementById('file-chosen-name-li').textContent = '';
+      setImportSource(preset || 'file');
+      document.getElementById('import-modal').style.display = 'flex';
+    }
+    function closeImportModal() {
+      document.getElementById('import-modal').style.display = 'none';
+    }
+
+    async function submitImport() {
+      const file = importSource === 'linkedin' ? document.getElementById('import-file-li').files[0] : document.getElementById('import-file').files[0];
+      if (!file) { ResumeUI.toast('Choose a file to import', 'error'); return; }
+      const btn = document.getElementById('import-submit-btn');
+      btn.classList.add('loading');
+      btn.disabled = true;
+      try {
+        const r = await IsynqStorage.importResumeFile(file, importSource);
+        window.location.href = `resume-editor.html?id=${r.id}`;
+      } catch (err) {
+        ResumeUI.toastError(err, 'Failed to import resume');
+        btn.classList.remove('loading');
+        btn.disabled = false;
+      }
+    }
+  </script>
+</body>
+
+</html>

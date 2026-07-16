@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tailor Resume — Isynq</title>
+  <link rel="stylesheet" href="../css/design-system.css">
+  <link rel="stylesheet" href="../css/components.css">
+  <link rel="stylesheet" href="../css/dashboard.css">
+  <link rel="stylesheet" href="../css/resume-templates.css">
+  <link rel="stylesheet" href="../css/resume-app.css">
+  <style>
+    html, body { height: 100%; margin: 0; }
+  </style>
+</head>
+
+<body>
+  <div class="rs-app" style="height:100vh;overflow:hidden;">
+    <div class="rs-topbar">
+      <a href="dashboard.html" class="rs-brand" title="Back to Isynq">
+        <span class="rs-brand__icon">I</span><span class="rs-brand__word">Isynq</span>
+      </a>
+      <a id="back-link" class="rs-back" title="Back to editor">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="17" height="17"><path d="M15 18l-6-6 6-6"/></svg>
+      </a>
+      <div class="rs-title-block">
+        <span class="eyebrow">✨ AI Tailoring</span>
+        <b style="font-size:0.9375rem;" id="topbar-title">Tailor to a job description</b>
+      </div>
+      <div class="spacer"></div>
+      <span class="rs-save-status" id="run-status">Not tailored yet</span>
+    </div>
+
+    <div class="rs-tailor-shell">
+      <div class="jd-col">
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Job description</label>
+          <textarea class="form-input" id="f-jd" rows="10" placeholder="Paste the job description here..."></textarea>
+          <div class="jd-box" id="jd-locked" style="display:none;">
+            <div class="jd-box__bar">
+              <span class="jd-box__role" id="jd-locked-role"></span>
+              <span class="jd-box__co" id="jd-locked-co"></span>
+              <button class="jd-box__edit" onclick="unlockJd()">Editable</button>
+            </div>
+            <div class="jd-text" id="jd-locked-text"></div>
+          </div>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Role</label>
+          <input type="text" class="form-input" id="f-role" placeholder="e.g. Senior Frontend Engineer">
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Company</label>
+          <input type="text" class="form-input" id="f-company" placeholder="e.g. Acme Corp">
+        </div>
+        <div class="intensity">
+          <div class="form-label" style="margin-bottom:8px;">Tailoring intensity</div>
+          <div class="segmented" id="intensity-seg">
+            <button data-v="conservative" aria-pressed="false">Conservative</button>
+            <button data-v="balanced" aria-pressed="true">Balanced</button>
+            <button data-v="creative" aria-pressed="false">Creative</button>
+          </div>
+          <p id="intensity-desc" style="font-size:0.75rem;color:var(--rs-text-muted);margin:8px 2px 0;line-height:1.5;"></p>
+        </div>
+        <button class="btn btn-primary btn-block" id="analyze-btn" onclick="runAnalysis()">✨ Tailor my resume</button>
+        <p style="font-size:0.75rem;color:var(--rs-text-muted);margin:8px 2px 0;">The AI never runs until you ask it to.</p>
+      </div>
+
+      <div class="review-col">
+        <div class="review-inner">
+          <div class="review-head">
+            <h2>Suggested changes</h2>
+            <span class="count" id="sg-count">0</span>
+            <div style="margin-left:auto;display:flex;gap:8px;">
+              <button class="btn btn-ghost btn-sm" id="reject-all-btn" onclick="rejectAll()" disabled>Reject all</button>
+              <button class="btn btn-ghost btn-sm" id="accept-all-btn" onclick="acceptAll()" disabled>Accept all</button>
+              <button class="btn btn-primary btn-sm" id="apply-btn" onclick="applyVersion()" disabled>Apply to résumé</button>
+            </div>
+          </div>
+          <p style="font-size:0.8125rem;color:var(--rs-text-secondary);margin:-6px 0 16px;">Review each change below. Accepting a suggestion updates your résumé and raises your match score.</p>
+          <div id="results-area">
+            <div class="tailor-idle">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l1.9 5.8L20 9.3l-4.6 3.9 1.5 6-4.9-3.4-4.9 3.4 1.5-6L4 9.3l6.1-1.5z"/></svg>
+              <b>Ready when you are</b>
+              <p>Paste a job description on the left, pick a tailoring intensity, then click <b>Tailor my resume</b>.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <aside class="ats-col">
+        <div class="ats-col__lbl">ATS match</div>
+        <div class="ats-card" id="ats-card"></div>
+        <div class="ats-stat" id="ats-stat" style="display:none;">
+          <span class="ats-stat__num" id="ats-stat-num">—/—</span>
+          <span class="ats-stat__lbl">Keywords matched</span>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script src="../js/storage.js?v=20260714b"></script>
+  <script src="../js/auth.js?v=20260714b"></script>
+  <script src="../js/sidebar.js?v=20260714b"></script>
+  <script src="../js/resumeRender.js?v=20260714b"></script>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const resumeId = params.get('id');
+    let lastResult = null;
+    let intensity = 'balanced';
+    let companyEdited = false;
+    const included = new Set();
+
+    const INTENSITY_DESC = {
+      conservative: 'Minimal wording changes — surfaces missing keywords without reframing your experience.',
+      balanced: 'Recommended — reworks bullets for impact and keyword coverage while staying truthful to your experience.',
+      creative: 'More assertive rewrites — leans harder into matching the posting\'s language.',
+    };
+
+    /** Best-effort "Acme Corp is hiring" / "at Acme Corp" detector — only
+        auto-fills Company while the user hasn't typed one themselves. */
+    function detectCompany(jd) {
+      const STOP = /\s+(?:is|are|we|you|for|in|and|to|on|with|as|will|who|that)\b/;
+      const m = jd.match(/\bat\s+([A-Z][A-Za-z0-9&.,' -]{1,40}?)(?:[.,!\n]|$)/) || jd.match(/\bat\s+([A-Z][A-Za-z0-9&.,' -]{1,40}?)(?=\s+(?:is|are|we|you|for|in|and|to|on|with|as|will|who|that)\b)/)
+        || jd.match(/^([A-Z][A-Za-z0-9&.,' -]{1,40}?)\s+is\s+(?:hiring|looking)/m);
+      if (!m) return '';
+      return m[1].split(STOP)[0].trim();
+    }
+
+    function renderIdleAtsCard() {
+      document.getElementById('ats-card').innerHTML = `
+        <div class="ats-card__ring">${ResumeUI.scoreRing({ value: 0, size: 88, stroke: 7, fontSize: 20, cap: 'match' })}</div>
+        <div class="ats-card__status"><span class="not-scored-badge">Not scored</span></div>
+        <div class="ats-card__desc">Run <b>Tailor my resume</b> to score your résumé against this posting.</div>
+        <div class="target-bar">
+          <div class="target-bar__track"><div class="target-bar__fill" style="width:0%;"></div><div class="target-bar__marker" style="left:85%;"></div></div>
+          <div class="target-bar__labels"><span>0</span><span class="mid">target 85</span><span>100</span></div>
+        </div>`;
+    }
+
+    function renderScoredAtsCard(r) {
+      document.getElementById('ats-card').innerHTML = `
+        <div class="ats-card__ring">${ResumeUI.scoreRing({ value: r.baseScore, size: 88, stroke: 7, fontSize: 20, cap: 'match' })}</div>
+        <div class="ats-card__desc">Apply suggestions to reach <b>${r.target}</b>.</div>
+        <div class="target-bar">
+          <div class="target-bar__track"><div class="target-bar__fill" style="width:${r.baseScore}%;"></div><div class="target-bar__marker" style="left:${r.target}%;"></div></div>
+          <div class="target-bar__labels"><span>0</span><span class="mid">target ${r.target}</span><span>100</span></div>
+        </div>`;
+      document.getElementById('ats-stat').style.display = 'flex';
+      document.getElementById('ats-stat-num').textContent = `${r.baseMatched}/${r.total}`;
+    }
+
+    let jdLocked = false;
+    function lockJd() {
+      jdLocked = true;
+      document.getElementById('f-jd').style.display = 'none';
+      document.getElementById('jd-locked').style.display = 'block';
+      refreshLockedJdHeader();
+      document.getElementById('jd-locked-text').textContent = document.getElementById('f-jd').value;
+    }
+    function unlockJd() {
+      jdLocked = false;
+      document.getElementById('jd-locked').style.display = 'none';
+      document.getElementById('f-jd').style.display = 'block';
+      document.getElementById('f-jd').focus();
+    }
+    function refreshLockedJdHeader() {
+      const role = document.getElementById('f-role').value.trim();
+      const company = document.getElementById('f-company').value.trim();
+      document.getElementById('jd-locked-role').textContent = role || 'Tailored role';
+      document.getElementById('jd-locked-co').textContent = company;
+    }
+
+    function updateIntensityDesc() {
+      document.getElementById('intensity-desc').textContent = INTENSITY_DESC[intensity] || '';
+    }
+
+    (async function init() {
+      if (!(await IsynqAuth.requireAuth())) return;
+      if (!resumeId) { window.location.href = 'resumes.html'; return; }
+      document.getElementById('back-link').href = `resume-editor.html?id=${resumeId}`;
+      renderIdleAtsCard();
+      updateIntensityDesc();
+
+      try {
+        const resume = await IsynqStorage.getResume(resumeId);
+        if (resume) document.getElementById('topbar-title').textContent = `Tailor "${resume.title}" to a job`;
+      } catch { /* non-critical */ }
+
+      document.getElementById('intensity-seg').addEventListener('click', (e) => {
+        const btn = e.target.closest('button');
+        if (!btn) return;
+        intensity = btn.dataset.v;
+        document.querySelectorAll('#intensity-seg button').forEach((b) => b.setAttribute('aria-pressed', b === btn ? 'true' : 'false'));
+        updateIntensityDesc();
+      });
+
+      document.getElementById('f-company').addEventListener('input', () => { companyEdited = true; if (jdLocked) refreshLockedJdHeader(); });
+      document.getElementById('f-role').addEventListener('input', () => { if (jdLocked) refreshLockedJdHeader(); });
+      document.getElementById('f-jd').addEventListener('input', (e) => {
+        if (companyEdited) return;
+        const guess = detectCompany(e.target.value);
+        if (guess) document.getElementById('f-company').value = guess;
+      });
+
+      // A JD handed off from the editor's live ATS panel takes priority over
+      // the last tailor run's context, since it's a fresher, explicit action.
+      const handoffKey = `tailor-jd:${resumeId}`;
+      const handoffJd = sessionStorage.getItem(handoffKey);
+      if (handoffJd) {
+        sessionStorage.removeItem(handoffKey);
+        document.getElementById('f-jd').value = handoffJd;
+        const guess = detectCompany(handoffJd);
+        if (guess) document.getElementById('f-company').value = guess;
+      } else {
+        try {
+          const ctx = await IsynqStorage.getTailorContext(resumeId);
+          if (ctx) {
+            document.getElementById('f-jd').value = ctx.jd || '';
+            document.getElementById('f-role').value = ctx.role || '';
+            document.getElementById('f-company').value = ctx.company || '';
+            if (ctx.company) companyEdited = true;
+          }
+        } catch { /* no prior context, fine */ }
+      }
+    })();
+
+    async function runAnalysis() {
+      const jd = document.getElementById('f-jd').value.trim();
+      if (!jd) { ResumeUI.toast('Paste a job description first', 'error'); return; }
+      const btn = document.getElementById('analyze-btn');
+      btn.classList.add('loading'); btn.disabled = true;
+      document.getElementById('run-status').textContent = 'Tailoring…';
+      try {
+        lastResult = await IsynqStorage.runTailor(resumeId, jd, intensity);
+        included.clear();
+        lastResult.suggestions.forEach((s) => included.add(s.id));
+        renderScoredAtsCard(lastResult);
+        renderResults();
+        lockJd();
+      } catch (err) {
+        document.getElementById('run-status').textContent = 'Not tailored yet';
+        ResumeUI.toastError(err, 'Tailoring failed');
+      } finally {
+        btn.classList.remove('loading'); btn.disabled = false;
+      }
+    }
+
+    function typeBadge(kind) {
+      return kind === 'add'
+        ? '<span class="sg__type sg__type--add">+ Add</span>'
+        : '<span class="sg__type sg__type--edit">✎ Edit</span>';
+    }
+
+    function diffHtml(s) {
+      if (s.kind === 'edit') {
+        return `<div class="diff-line diff-before"><span class="diff-tag">Before</span>${ResumeUI.escapeHtml(s.before || '')}</div>
+                <div class="diff-line diff-after"><span class="diff-tag">After</span>${ResumeUI.escapeHtml(s.after || '')}</div>`;
+      }
+      return `<div class="diff-line diff-add"><span class="diff-tag">Add</span>${ResumeUI.escapeHtml(s.add || '')}</div>`;
+    }
+
+    function renderResults() {
+      const r = lastResult;
+      document.getElementById('results-area').innerHTML = r.suggestions.map((s) => `
+        <div class="sg ${included.has(s.id) ? '' : 'is-off'}" id="sg-${s.id}">
+          <div class="sg__head">
+            ${typeBadge(s.kind)}
+            <span class="sg__loc"><b>${ResumeUI.escapeHtml(s.loc)}</b></span>
+            <label class="sg__toggle"><input type="checkbox" ${included.has(s.id) ? 'checked' : ''} onchange="toggleSuggestion('${s.id}')"> Include</label>
+          </div>
+          <div class="sg__body">
+            <p class="sg__note">${ResumeUI.escapeHtml(s.note)}</p>
+            ${diffHtml(s)}
+            ${s.keywords && s.keywords.length ? `<div class="kw-pills">${s.keywords.map(([label, prio]) => `<span class="kw-pill ${prio === 'high' ? 'high' : ''}">${ResumeUI.escapeHtml(label)}</span>`).join('')}</div>` : ''}
+          </div>
+        </div>
+      `).join('') || `<p style="color:var(--rs-text-muted);">No suggestions — this resume already covers the job description well.</p>`;
+      updateReviewControls();
+    }
+
+    function updateReviewControls() {
+      const total = lastResult ? lastResult.suggestions.length : 0;
+      document.getElementById('sg-count').textContent = `${included.size}/${total}`;
+      document.getElementById('reject-all-btn').disabled = total === 0;
+      document.getElementById('accept-all-btn').disabled = total === 0;
+      document.getElementById('apply-btn').disabled = included.size === 0;
+      document.getElementById('run-status').textContent = total === 0 ? 'Not tailored yet' : `${included.size}/${total} included`;
+    }
+
+    function toggleSuggestion(id) {
+      if (included.has(id)) included.delete(id); else included.add(id);
+      document.getElementById(`sg-${id}`)?.classList.toggle('is-off', !included.has(id));
+      updateReviewControls();
+    }
+    function acceptAll() { lastResult.suggestions.forEach((s) => included.add(s.id)); renderResults(); }
+    function rejectAll() { included.clear(); renderResults(); }
+
+    async function applyVersion() {
+      if (!lastResult || !included.size) return;
+      const role = document.getElementById('f-role').value.trim();
+      const company = document.getElementById('f-company').value.trim();
+      const jd = document.getElementById('f-jd').value.trim();
+      const accepted = lastResult.suggestions.filter((s) => included.has(s.id));
+      const btn = document.getElementById('apply-btn');
+      btn.classList.add('loading'); btn.disabled = true;
+      try {
+        const version = await IsynqStorage.applyTailoredVersion(resumeId, { jd, role, company, score: lastResult.target, accepted });
+        window.location.href = `resume-editor.html?id=${resumeId}&v=${version.id}`;
+      } catch (err) {
+        ResumeUI.toastError(err, 'Failed to apply tailored version');
+        btn.classList.remove('loading'); btn.disabled = false;
+      }
+    }
+  </script>
+</body>
+
+</html>
